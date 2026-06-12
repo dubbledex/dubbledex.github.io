@@ -82,6 +82,8 @@ Test webpage for iiyama 10" screen lighting test v3 - test variables
       font-size: 14px;
       box-sizing: border-box;
       font-family: monospace;
+      color: #000;
+      background: #fff;
     }
 
     code {
@@ -92,8 +94,8 @@ Test webpage for iiyama 10" screen lighting test v3 - test variables
     }
 
     pre {
-      background: #050505;
-      color: #ffffff;
+      background: #ffffff;
+      color: #000000;
       padding: 14px;
       overflow-x: auto;
       border-radius: 6px;
@@ -107,14 +109,20 @@ Test webpage for iiyama 10" screen lighting test v3 - test variables
     }
 
     pre.idle {
+      color: #000000;
+      background: #ffffff;
       border-color: #555;
     }
 
     pre.success {
+      color: #000000;
+      background: #ffffff;
       border-color: #168a31;
     }
 
     pre.error {
+      color: #000000;
+      background: #ffffff;
       border-color: #cc2222;
     }
 
