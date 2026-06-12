@@ -86,17 +86,36 @@ Test webpage for iiyama 10" screen lighting test v3 - test variables
 
     code {
       background: #eee;
+      color: #111;
       padding: 2px 4px;
       border-radius: 3px;
     }
 
     pre {
-      background: #222;
-      color: #eee;
-      padding: 12px;
+      background: #050505;
+      color: #ffffff;
+      padding: 14px;
       overflow-x: auto;
-      border-radius: 5px;
-      min-height: 40px;
+      border-radius: 6px;
+      min-height: 44px;
+      font-size: 15px;
+      line-height: 1.45;
+      font-family: Consolas, Monaco, "Courier New", monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+      border: 3px solid #333;
+    }
+
+    pre.idle {
+      border-color: #555;
+    }
+
+    pre.success {
+      border-color: #168a31;
+    }
+
+    pre.error {
+      border-color: #cc2222;
     }
 
     .ok {
@@ -163,12 +182,12 @@ Test webpage for iiyama 10" screen lighting test v3 - test variables
 
   <div class="card">
     <h2>Last Request</h2>
-    <pre id="lastRequest">No request yet.</pre>
+    <pre id="lastRequest" class="idle">No request yet.</pre>
   </div>
 
   <div class="card">
     <h2>Response</h2>
-    <pre id="output">No response yet.</pre>
+    <pre id="output" class="idle">No response yet.</pre>
   </div>
 
   <script>
@@ -201,13 +220,15 @@ Test webpage for iiyama 10" screen lighting test v3 - test variables
     }
 
     function setLastRequest(url) {
-      document.getElementById("lastRequest").textContent = url;
+      const box = document.getElementById("lastRequest");
+      box.textContent = url;
+      box.className = "success";
     }
 
     function setOutput(text, isError) {
       const output = document.getElementById("output");
       output.textContent = text;
-      output.className = isError ? "bad" : "";
+      output.className = isError ? "error" : "success";
     }
 
     async function callBridge(url) {
