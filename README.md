@@ -8,19 +8,28 @@ Test webpage for iiyama 10" screen lighting test v3 - test variables
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <style>
+    html, body {
+      background: #f5f5f5;
+      color: #222222;
+    }
+
     body {
       font-family: Arial, sans-serif;
       margin: 24px;
-      background: #f5f5f5;
-      color: #222;
     }
 
     h1 {
       margin-top: 0;
+      color: #222222;
+    }
+
+    h2 {
+      color: #222222;
     }
 
     .card {
-      background: #fff;
+      background-color: #ffffff;
+      color: #222222;
       border-radius: 8px;
       padding: 18px;
       margin-bottom: 18px;
@@ -34,40 +43,41 @@ Test webpage for iiyama 10" screen lighting test v3 - test variables
       font-size: 16px;
       border: 0;
       border-radius: 5px;
-      background: #0066cc;
-      color: white;
+      background-color: #0066cc;
+      color: #ffffff;
       cursor: pointer;
     }
 
     button.red {
-      background: #cc2222;
+      background-color: #cc2222;
+      color: #ffffff;
     }
 
     button.green {
-      background: #168a31;
+      background-color: #168a31;
+      color: #ffffff;
     }
 
     button.yellow {
-      background: #d19a00;
-      color: #111;
+      background-color: #d19a00;
+      color: #111111;
     }
 
     button.dark {
-      background: #444;
+      background-color: #444444;
+      color: #ffffff;
     }
 
     button.secondary {
-      background: #666;
-    }
-
-    button:active {
-      transform: scale(0.98);
+      background-color: #666666;
+      color: #ffffff;
     }
 
     label {
       display: block;
       margin: 10px 0;
       font-weight: bold;
+      color: #222222;
     }
 
     input[type="checkbox"] {
@@ -82,63 +92,60 @@ Test webpage for iiyama 10" screen lighting test v3 - test variables
       font-size: 14px;
       box-sizing: border-box;
       font-family: monospace;
-      color: #000;
-      background: #fff;
+      color: #000000;
+      background-color: #ffffff;
+      border: 1px solid #888888;
     }
 
     code {
-      background: #eee;
-      color: #111;
+      background-color: #eeeeee;
+      color: #111111;
       padding: 2px 4px;
       border-radius: 3px;
     }
 
-    pre {
-      background: #ffffff;
-      color: #000000;
+    .outputBox {
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 52px;
       padding: 14px;
-      overflow-x: auto;
+      margin-top: 8px;
+
+      background-color: #ffffff !important;
+      color: #000000 !important;
+
+      border: 4px solid #555555;
       border-radius: 6px;
-      min-height: 44px;
-      font-size: 15px;
+
+      font-family: Arial, sans-serif;
+      font-size: 18px;
       line-height: 1.45;
-      font-family: Consolas, Monaco, "Courier New", monospace;
       white-space: pre-wrap;
+      overflow-wrap: anywhere;
       word-break: break-word;
-      border: 3px solid #333;
     }
 
-    pre.idle {
-      color: #000000;
-      background: #ffffff;
-      border-color: #555;
+    .outputBox.idle {
+      border-color: #555555;
+      background-color: #ffffff !important;
+      color: #000000 !important;
     }
 
-    pre.success {
-      color: #000000;
-      background: #ffffff;
+    .outputBox.success {
       border-color: #168a31;
+      background-color: #ffffff !important;
+      color: #000000 !important;
     }
 
-    pre.error {
-      color: #000000;
-      background: #ffffff;
+    .outputBox.error {
       border-color: #cc2222;
-    }
-
-    .ok {
-      color: green;
-      font-weight: bold;
-    }
-
-    .bad {
-      color: #bb2222;
-      font-weight: bold;
+      background-color: #ffffff !important;
+      color: #000000 !important;
     }
 
     .small {
       font-size: 14px;
-      color: #555;
+      color: #555555;
     }
   </style>
 </head>
@@ -190,16 +197,16 @@ Test webpage for iiyama 10" screen lighting test v3 - test variables
 
   <div class="card">
     <h2>Last Request</h2>
-    <pre id="lastRequest" class="idle">No request yet.</pre>
+    <div id="lastRequest" class="outputBox idle">No request yet.</div>
   </div>
 
   <div class="card">
     <h2>Response</h2>
-    <pre id="output" class="idle">No response yet.</pre>
+    <div id="output" class="outputBox idle">No response yet.</div>
   </div>
 
   <script>
-    const BASE_URL = "http://127.0.0.1:8765";
+    var BASE_URL = "http://127.0.0.1:8765";
 
     function getToken() {
       return document.getElementById("tokenInput").value.trim();
@@ -210,87 +217,102 @@ Test webpage for iiyama 10" screen lighting test v3 - test variables
     }
 
     function buildUrl(path, params) {
-      const url = new URL(BASE_URL + path);
+      var url = BASE_URL + path;
+      var queryParts = [];
 
       if (params) {
-        Object.keys(params).forEach(function (key) {
-          if (params[key] !== null && params[key] !== undefined) {
-            url.searchParams.set(key, params[key]);
+        for (var key in params) {
+          if (params.hasOwnProperty(key)) {
+            if (params[key] !== null && params[key] !== undefined) {
+              queryParts.push(
+                encodeURIComponent(key) + "=" + encodeURIComponent(params[key])
+              );
+            }
           }
-        });
+        }
       }
 
       if (isSecureMode()) {
-        url.searchParams.set("token", getToken());
+        queryParts.push(
+          "token=" + encodeURIComponent(getToken())
+        );
       }
 
-      return url.toString();
+      if (queryParts.length > 0) {
+        url += "?" + queryParts.join("&");
+      }
+
+      return url;
+    }
+
+    function setBoxText(id, text, state) {
+      var box = document.getElementById(id);
+
+      box.className = "outputBox " + state;
+      box.style.backgroundColor = "#ffffff";
+      box.style.color = "#000000";
+      box.style.display = "block";
+      box.innerText = text;
+      box.textContent = text;
     }
 
     function setLastRequest(url) {
-      const box = document.getElementById("lastRequest");
-      box.textContent = url;
-      box.className = "success";
+      setBoxText("lastRequest", url, "success");
     }
 
     function setOutput(text, isError) {
-      const output = document.getElementById("output");
-      output.textContent = text;
-      output.className = isError ? "error" : "success";
+      setBoxText("output", text, isError ? "error" : "success");
     }
 
-    async function callBridge(url) {
+    function callBridge(url) {
       setLastRequest(url);
       setOutput("Waiting for response...", false);
 
-      try {
-        const response = await fetch(url, {
-          method: "GET",
-          cache: "no-store"
+      fetch(url, {
+        method: "GET",
+        cache: "no-store"
+      })
+      .then(function(response) {
+        return response.text().then(function(text) {
+          var display = "HTTP " + response.status + " " + response.statusText + "\n\n";
+
+          try {
+            var json = JSON.parse(text);
+            display += JSON.stringify(json, null, 2);
+          } catch (e) {
+            display += text;
+          }
+
+          setOutput(display, !response.ok);
         });
-
-        const text = await response.text();
-
-        let display = "HTTP " + response.status + " " + response.statusText + "\n\n";
-
-        try {
-          const json = JSON.parse(text);
-          display += JSON.stringify(json, null, 2);
-        } catch (e) {
-          display += text;
-        }
-
-        setOutput(display, !response.ok);
-      } catch (err) {
+      })
+      .catch(function(err) {
         setOutput("Request failed:\n\n" + err.message, true);
-      }
+      });
     }
 
     function ping() {
-      const url = BASE_URL + "/ping";
-      callBridge(url);
+      callBridge(BASE_URL + "/ping");
     }
 
     function authPing() {
-      const url = buildUrl("/auth/ping", {});
-      callBridge(url);
+      callBridge(buildUrl("/auth/ping", {}));
     }
 
     function showModel() {
-      const url = buildUrl("/model", {});
-      callBridge(url);
+      callBridge(buildUrl("/model", {}));
     }
 
     function setLed(color) {
-      const url = buildUrl("/led", {
+      callBridge(buildUrl("/led", {
         color: color
-      });
-
-      callBridge(url);
+      }));
     }
 
+    document.getElementById("baseUrlText").innerText = BASE_URL;
     document.getElementById("baseUrlText").textContent = BASE_URL;
   </script>
 </body>
 </html>
+
 
