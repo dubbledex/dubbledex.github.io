@@ -14,6 +14,15 @@
       min-height: 100%;
     }
 
+    body.prompt-lock {
+      overflow: hidden !important;
+      position: fixed !important;
+      width: 100% !important;
+      height: 100% !important;
+      overscroll-behavior: none !important;
+      touch-action: none !important;
+    }
+
     input[type="color"] {
       -webkit-appearance: none;
       border: none;
@@ -21,6 +30,7 @@
       overflow: hidden;
     }
 
+    #prompterPage,
     #prompterFrame {
       overscroll-behavior: none;
       touch-action: none;
@@ -193,26 +203,36 @@
             <input id="startSpeedInput" type="range" min="-10" max="25" value="4" class="w-full accent-violet-500" />
           </label>
 
-          <div class="flex flex-wrap gap-2 mb-4">
-            <button
-              id="presenterPresetBtn"
-              type="button"
-              class="px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 font-semibold text-sm"
-            >
-              Presenter preset: E2 / Page / Arrow
-            </button>
+          <div class="space-y-3 mb-4">
+            <div class="flex flex-wrap gap-2">
+              <button
+                id="presenterPresetBtn"
+                type="button"
+                class="px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 font-semibold text-sm"
+              >
+                Presenter preset: E2 Page/Arrow
+              </button>
 
-            <button
-              id="resetBindingsBtn"
-              type="button"
-              class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 font-semibold text-sm"
-            >
-              Reset keybindings
-            </button>
+              <button
+                id="resetBindingsBtn"
+                type="button"
+                class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 font-semibold text-sm"
+              >
+                Reset keybindings
+              </button>
+            </div>
+
+            <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-950 border border-slate-700 text-sm">
+              <input id="singleButtonFallbackInput" type="checkbox" class="mt-1 accent-amber-500" />
+              <span>
+                <strong class="text-amber-300">Single-button fallback</strong><br />
+                Use only if both E2 page buttons appear as Button 0. Single click speeds up, double click slows down, long press exits.
+              </span>
+            </label>
           </div>
 
           <p id="captureStatus" class="hidden mb-4 p-3 rounded-xl bg-rose-950 border border-rose-700 text-rose-100 text-sm">
-            Capturing input. Press one keyboard or presenter button now. Press Escape to cancel.
+            Capturing input. Press one keyboard or presenter button now. Mouse/touch Button 0 will not be saved because both E2 page buttons can appear identical.
           </p>
 
           <div class="space-y-2 text-sm">
@@ -253,9 +273,9 @@
           </div>
 
           <div class="mt-4 p-3 rounded-xl bg-slate-950 border border-slate-700 text-xs text-slate-400">
-            <strong class="text-slate-200">HanLinYue / E2 Control tip:</strong>
+            <strong class="text-slate-200">E2 Control note:</strong>
             use PageUp/PageDown mode first. If that fails, try Left/Right mode.
-            Avoid volume mode if Android changes system volume, because the browser may not receive those buttons.
+            Volume mode is usually captured by Android itself and may not reach the browser.
           </div>
         </div>
       </section>
@@ -347,7 +367,7 @@
   <script>
     "use strict";
 
-    const STORAGE_KEY = "teleprompter_pro_e2_control_v3";
+    const STORAGE_KEY = "teleprompter_pro_e2_control_v5";
 
     const defaultState = {
       text:
@@ -360,9 +380,10 @@
         "- Start / stop: Space\n" +
         "- Reset: R\n" +
         "- Exit: Escape\n\n" +
-        "HanLinYue / E2 Control presenter support:\n" +
-        "- PageDown / ArrowRight / Space / Enter / media next = speed up\n" +
-        "- PageUp / ArrowLeft / media previous = slow down / reverse\n",
+        "E2 Control support:\n" +
+        "- PageDown / ArrowRight / Enter = speed up\n" +
+        "- PageUp / ArrowLeft = slow down / reverse\n" +
+        "- Return / Escape / BrowserBack / Backspace = exit prompter\n",
       fileName: "teleprompter-script.txt",
       flipHorizontal: false,
       flipVertical: false,
@@ -378,6 +399,7 @@
       focusColor: "#10b981",
       focusOpacity: 25,
       presenterMode: true,
+      singleButtonFallback: false,
       bindings: {
         speedUp: { code: "ArrowUp", key: "ArrowUp", keyCode: 38, which: 38 },
         speedDown: { code: "ArrowDown", key: "ArrowDown", keyCode: 40, which: 40 },
@@ -397,6 +419,11 @@
 
     let captureAction = null;
     let prompterHistoryActive = false;
+    let savedBodyScrollY = 0;
+
+    let lastPointerClickTime = 0;
+    let pointerDownAt = 0;
+    let pointerLongPressTimer = null;
 
     const els = {};
 
@@ -443,6 +470,7 @@
         "startSpeedLabel",
         "presenterPresetBtn",
         "resetBindingsBtn",
+        "singleButtonFallbackInput",
         "captureStatus",
 
         "fileNameInput",
@@ -498,7 +526,12 @@
       if (saved.bindings && typeof saved.bindings === "object") {
         for (const action of Object.keys(out.bindings)) {
           if (saved.bindings[action] && typeof saved.bindings[action] === "object") {
-            out.bindings[action] = normaliseSignature(saved.bindings[action]);
+            const normalised = normaliseSignature(saved.bindings[action]);
+
+            // Never restore ambiguous Button 0 bindings.
+            if (!isAmbiguousPointerButton0(normalised)) {
+              out.bindings[action] = normalised;
+            }
           }
         }
       }
@@ -510,6 +543,7 @@
       out.focusOffset = clampNumber(out.focusOffset, 5, 95, base.focusOffset);
       out.focusOpacity = clampNumber(out.focusOpacity, 0, 100, base.focusOpacity);
       out.startSpeed = clampNumber(out.startSpeed, -10, 25, base.startSpeed);
+      out.singleButtonFallback = !!out.singleButtonFallback;
 
       return out;
     }
@@ -548,6 +582,8 @@
 
       els.startSpeedInput.value = state.startSpeed;
       els.startSpeedLabel.textContent = state.startSpeed;
+
+      els.singleButtonFallbackInput.checked = !!state.singleButtonFallback;
 
       updateFlipButtons();
     }
@@ -599,6 +635,11 @@
         setVal("focusOpacity", clampNumber(els.focusOpacityInput.value, 0, 100, 25));
       });
 
+      els.singleButtonFallbackInput.addEventListener("change", () => {
+        state.singleButtonFallback = els.singleButtonFallbackInput.checked;
+        saveState();
+      });
+
       els.fileNameInput.addEventListener("input", () => {
         setVal("fileName", els.fileNameInput.value || "teleprompter-script.txt");
       });
@@ -610,12 +651,11 @@
       els.presenterPresetBtn.addEventListener("click", () => {
         applyPresenterPreset();
         alert(
-          "E2/Generic presenter preset saved.\n\n" +
-          "Try your remote in PageUp/PageDown mode first.\n" +
-          "If that fails, switch the remote to Left/Right mode.\n\n" +
-          "In prompt mode:\n" +
-          "Next/PageDown/ArrowRight/Space/Enter speeds up.\n" +
-          "Previous/PageUp/ArrowLeft slows down."
+          "E2 presenter preset saved.\n\n" +
+          "Use E2 PageUp/PageDown mode first.\n" +
+          "If that fails, try Left/Right mode.\n\n" +
+          "Return/Back should exit prompt mode if the browser exposes it.\n\n" +
+          "If both page buttons still appear as Button 0, enable Single-button fallback."
         );
       });
 
@@ -636,18 +676,17 @@
       els.exportTxtBtn.addEventListener("click", () => exportFile("txt"));
       els.exportRtfBtn.addEventListener("click", () => exportFile("rtf"));
 
-      // Capture/control listeners.
       window.addEventListener("keydown", handleInputEvent, { capture: true, passive: false });
       window.addEventListener("keyup", handleInputEvent, { capture: true, passive: false });
 
-      // Some Bluetooth clickers on Android act like pointer/mouse/scroll devices.
       window.addEventListener("pointerdown", handleInputEvent, { capture: true, passive: false });
+      window.addEventListener("pointerup", handleInputEvent, { capture: true, passive: false });
       window.addEventListener("mousedown", handleInputEvent, { capture: true, passive: false });
       window.addEventListener("mouseup", handleInputEvent, { capture: true, passive: false });
       window.addEventListener("click", handleInputEvent, { capture: true, passive: false });
-      window.addEventListener("wheel", handleWheelEvent, { capture: true, passive: false });
 
-      // Android hardware Back handling.
+      window.addEventListener("touchmove", handleTouchMoveLock, { capture: true, passive: false });
+
       window.addEventListener("popstate", () => {
         const isPrompting = !els.prompterPage.classList.contains("hidden");
         if (isPrompting) {
@@ -696,13 +735,10 @@
         aliases: [
           "PageDown",
           "ArrowRight",
-          "Space",
           "Enter",
           "NumpadEnter",
           "MediaTrackNext",
           "MediaNextTrack",
-          "AudioVolumeUp",
-          "VolumeUp",
           "BrowserForward"
         ]
       };
@@ -716,10 +752,22 @@
           "PageUp",
           "ArrowLeft",
           "MediaTrackPrevious",
-          "MediaPreviousTrack",
-          "AudioVolumeDown",
-          "VolumeDown",
-          "BrowserBack"
+          "MediaPreviousTrack"
+        ]
+      };
+
+      state.bindings.exit = {
+        code: "Escape",
+        key: "Escape",
+        keyCode: 27,
+        which: 27,
+        aliases: [
+          "Escape",
+          "BrowserBack",
+          "GoBack",
+          "Backspace",
+          "Back",
+          "SoftLeft"
         ]
       };
 
@@ -730,7 +778,6 @@
     function beginCapture(action) {
       if (!action || !state.bindings[action]) return;
 
-      // Only one capture at a time.
       captureAction = action;
 
       document.querySelectorAll(".bindBtn").forEach(btn => {
@@ -762,7 +809,6 @@
       const sig = eventToSignature(e);
       const isPrompting = !els.prompterPage.classList.contains("hidden");
 
-      // Capture key bindings.
       if (captureAction) {
         if (
           e.type === "keydown" &&
@@ -775,11 +821,31 @@
           return;
         }
 
+        if (isAmbiguousPointerEvent(sig)) {
+          e.preventDefault();
+          e.stopPropagation();
+          alert(
+            "This button is being reported only as Button 0, which is ambiguous because both E2 page buttons can send the same value.\n\n" +
+            "Please switch the E2 remote to PageUp/PageDown mode or Left/Right mode, then try binding again.\n\n" +
+            "Alternatively enable Single-button fallback."
+          );
+          cancelCapture();
+          return;
+        }
+
         if (isUsableSignature(sig)) {
           e.preventDefault();
           e.stopPropagation();
 
-          state.bindings[captureAction] = normaliseSignature(sig);
+          const normalised = normaliseSignature(sig);
+
+          if (isAmbiguousPointerButton0(normalised)) {
+            alert("Button 0 was not saved because it cannot distinguish between the two page buttons.");
+            cancelCapture();
+            return;
+          }
+
+          state.bindings[captureAction] = normalised;
 
           if (captureAction === "speedUp" || captureAction === "speedDown") {
             state.presenterMode = false;
@@ -811,12 +877,27 @@
         e.stopPropagation();
       }
 
-      // Avoid double-triggering on key release/click release.
-      if (e.type === "keyup" || e.type === "mouseup" || e.type === "click") return;
+      if (state.singleButtonFallback && isPointerPrimaryDown(sig)) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleSingleButtonPointerDown();
+        return;
+      }
 
-      // Hard-coded presenter handling first.
-      // This is deliberately separate from saved bindings because Android browsers
-      // can fail to translate saved Bluetooth clicker captures consistently.
+      if (state.singleButtonFallback && isPointerPrimaryUp(sig)) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleSingleButtonPointerUp();
+        return;
+      }
+
+      if (e.type === "keyup" || e.type === "mouseup" || e.type === "pointerup" || e.type === "click") return;
+
+      if (state.presenterMode && isPresenterExit(sig)) {
+        exitPrompter(true);
+        return;
+      }
+
       if (state.presenterMode && isPresenterNext(sig)) {
         changeSpeed(0.5);
         return;
@@ -852,18 +933,44 @@
       }
     }
 
-    function handleWheelEvent(e) {
+    function handleTouchMoveLock(e) {
       const isPrompting = !els.prompterPage.classList.contains("hidden");
-      if (!isPrompting) return;
+      if (isPrompting) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }
 
-      e.preventDefault();
-      e.stopPropagation();
+    function handleSingleButtonPointerDown() {
+      pointerDownAt = performance.now();
 
-      // Some presenter remotes emulate wheel/scroll.
-      if (e.deltaY > 0) {
-        changeSpeed(0.5);
-      } else if (e.deltaY < 0) {
+      clearTimeout(pointerLongPressTimer);
+      pointerLongPressTimer = setTimeout(() => {
+        pointerLongPressTimer = null;
+        exitPrompter(true);
+      }, 850);
+    }
+
+    function handleSingleButtonPointerUp() {
+      const now = performance.now();
+      const heldFor = now - pointerDownAt;
+
+      if (pointerLongPressTimer) {
+        clearTimeout(pointerLongPressTimer);
+        pointerLongPressTimer = null;
+      } else {
+        return;
+      }
+
+      if (heldFor >= 800) return;
+
+      const sinceLast = now - lastPointerClickTime;
+      lastPointerClickTime = now;
+
+      if (sinceLast < 420) {
         changeSpeed(-0.5);
+      } else {
+        changeSpeed(0.5);
       }
     }
 
@@ -881,27 +988,47 @@
       };
     }
 
+    function isPointerEventType(type) {
+      return (
+        type === "click" ||
+        type === "mousedown" ||
+        type === "mouseup" ||
+        type === "pointerdown" ||
+        type === "pointerup"
+      );
+    }
+
+    function isPointerPrimaryDown(sig) {
+      return (
+        (sig.type === "pointerdown" || sig.type === "mousedown") &&
+        (sig.button === 0 || sig.button === null)
+      );
+    }
+
+    function isPointerPrimaryUp(sig) {
+      return (
+        (sig.type === "pointerup" || sig.type === "mouseup") &&
+        (sig.button === 0 || sig.button === null)
+      );
+    }
+
+    function isAmbiguousPointerEvent(sig) {
+      return isPointerEventType(sig.type) && (sig.button === 0 || sig.button === null) && !sig.code && !sig.key;
+    }
+
+    function isAmbiguousPointerButton0(sig) {
+      return sig && sig.button === 0 && !sig.code && !sig.key && !sig.keyCode && !sig.which;
+    }
+
     function isUsableSignature(sig) {
-      // For setup clicks, avoid accidentally binding the ordinary mouse/touch click
-      // used to press the binding button.
-      if (
-        (sig.type === "click" ||
-          sig.type === "mousedown" ||
-          sig.type === "mouseup" ||
-          sig.type === "pointerdown") &&
-        sig.button === 0 &&
-        !sig.pointerType
-      ) {
-        return false;
-      }
+      if (isAmbiguousPointerEvent(sig)) return false;
 
       return !!(
         sig.code ||
         sig.key ||
         sig.keyCode ||
         sig.which ||
-        sig.button !== null ||
-        sig.pointerType
+        (sig.button !== null && sig.button !== 0)
       );
     }
 
@@ -912,10 +1039,15 @@
       if (sig.key) out.key = sig.key;
       if (sig.keyCode) out.keyCode = sig.keyCode;
       if (sig.which) out.which = sig.which;
-      if (sig.button !== null && sig.button !== undefined) out.button = sig.button;
-      if (sig.pointerType) out.pointerType = sig.pointerType;
 
-      // Space special case.
+      if (sig.button !== null && sig.button !== undefined && sig.button !== 0) {
+        out.button = sig.button;
+      }
+
+      if (sig.pointerType && sig.button !== 0) {
+        out.pointerType = sig.pointerType;
+      }
+
       if (out.code === "Space" || out.key === " ") {
         out.code = "Space";
         out.key = " ";
@@ -958,24 +1090,15 @@
 
     function isPresenterNext(sig) {
       return (
-        // PageDown mode
         sig.code === "PageDown" ||
         sig.key === "PageDown" ||
         sig.keyCode === 34 ||
         sig.which === 34 ||
 
-        // Left/right mode
         sig.code === "ArrowRight" ||
         sig.key === "ArrowRight" ||
         sig.keyCode === 39 ||
         sig.which === 39 ||
-
-        // Some remotes use Enter or Space as "next"
-        sig.code === "Space" ||
-        sig.key === " " ||
-        sig.key === "Spacebar" ||
-        sig.keyCode === 32 ||
-        sig.which === 32 ||
 
         sig.code === "Enter" ||
         sig.key === "Enter" ||
@@ -983,18 +1106,11 @@
         sig.keyCode === 13 ||
         sig.which === 13 ||
 
-        // Media-key / volume mode variants
         sig.code === "MediaTrackNext" ||
         sig.key === "MediaTrackNext" ||
         sig.code === "MediaNextTrack" ||
         sig.key === "MediaNextTrack" ||
 
-        sig.code === "AudioVolumeUp" ||
-        sig.key === "AudioVolumeUp" ||
-        sig.code === "VolumeUp" ||
-        sig.key === "VolumeUp" ||
-
-        // Some HID remotes/browser remotes
         sig.code === "BrowserForward" ||
         sig.key === "BrowserForward"
       );
@@ -1002,32 +1118,42 @@
 
     function isPresenterPrevious(sig) {
       return (
-        // PageUp mode
         sig.code === "PageUp" ||
         sig.key === "PageUp" ||
         sig.keyCode === 33 ||
         sig.which === 33 ||
 
-        // Left/right mode
         sig.code === "ArrowLeft" ||
         sig.key === "ArrowLeft" ||
         sig.keyCode === 37 ||
         sig.which === 37 ||
 
-        // Media-key / volume mode variants
         sig.code === "MediaTrackPrevious" ||
         sig.key === "MediaTrackPrevious" ||
         sig.code === "MediaPreviousTrack" ||
-        sig.key === "MediaPreviousTrack" ||
+        sig.key === "MediaPreviousTrack"
+      );
+    }
 
-        sig.code === "AudioVolumeDown" ||
-        sig.key === "AudioVolumeDown" ||
-        sig.code === "VolumeDown" ||
-        sig.key === "VolumeDown" ||
+    function isPresenterExit(sig) {
+      return (
+        sig.code === "Escape" ||
+        sig.key === "Escape" ||
+        sig.keyCode === 27 ||
+        sig.which === 27 ||
 
-        // Some HID remotes/browser remotes
         sig.code === "BrowserBack" ||
-        sig.key === "BrowserBack"
+        sig.key === "BrowserBack" ||
+
+        sig.code === "Backspace" ||
+        sig.key === "Backspace" ||
+        sig.keyCode === 8 ||
+        sig.which === 8 ||
+
+        sig.key === "Back" ||
+        sig.code === "GoBack" ||
+        sig.key === "GoBack" ||
+        sig.key === "SoftLeft"
       );
     }
 
@@ -1046,16 +1172,16 @@
         "End",
         "Enter",
         "NumpadEnter",
+        "Escape",
+        "BrowserBack",
+        "BrowserForward",
+        "Backspace",
+        "Back",
+        "GoBack",
         "MediaTrackNext",
         "MediaNextTrack",
         "MediaTrackPrevious",
-        "MediaPreviousTrack",
-        "AudioVolumeUp",
-        "AudioVolumeDown",
-        "VolumeUp",
-        "VolumeDown",
-        "BrowserBack",
-        "BrowserForward"
+        "MediaPreviousTrack"
       ]);
 
       return (
@@ -1068,7 +1194,9 @@
         e.keyCode === 40 ||
         e.keyCode === 37 ||
         e.keyCode === 39 ||
-        e.keyCode === 13
+        e.keyCode === 13 ||
+        e.keyCode === 27 ||
+        e.keyCode === 8
       );
     }
 
@@ -1079,7 +1207,6 @@
       if (sig.key) return sig.key;
       if (sig.keyCode) return "KeyCode " + sig.keyCode;
       if (sig.button !== undefined && sig.button !== null) return "Button " + sig.button;
-      if (sig.pointerType) return sig.pointerType;
       return "Custom";
     }
 
@@ -1090,7 +1217,21 @@
       });
     }
 
+    function lockBodyScroll() {
+      savedBodyScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      document.body.style.top = `-${savedBodyScrollY}px`;
+      document.body.classList.add("prompt-lock");
+    }
+
+    function unlockBodyScroll() {
+      document.body.classList.remove("prompt-lock");
+      document.body.style.top = "";
+      window.scrollTo(0, savedBodyScrollY);
+    }
+
     function launchPrompter() {
+      lockBodyScroll();
+
       currentSpeed = 0;
       isScrolling = false;
       scrollPos = 0;
@@ -1130,20 +1271,17 @@
       }
 
       els.controlsHud.textContent =
-        `${bindingLabel(state.bindings.speedUp)} speed up | ` +
-        `${bindingLabel(state.bindings.speedDown)} slow/reverse | ` +
+        `${bindingLabel(state.bindings.speedUp)} up | ` +
+        `${bindingLabel(state.bindings.speedDown)} down | ` +
         `${bindingLabel(state.bindings.toggle)} pause`;
 
       updateHud();
 
-      // Push a temporary history entry so Android Back closes prompter mode
-      // instead of leaving the app.
       if (!history.state || !history.state.prompterOpen) {
         history.pushState({ prompterOpen: true }, "");
         prompterHistoryActive = true;
       }
 
-      // Focus the prompter frame so PageUp/PageDown-style remotes have a target.
       setTimeout(() => {
         try {
           els.prompterFrame.focus({ preventScroll: true });
@@ -1164,6 +1302,8 @@
       isScrolling = false;
       currentSpeed = 0;
       els.prompterPage.classList.add("hidden");
+
+      unlockBodyScroll();
 
       if (adjustHistory && prompterHistoryActive && history.state && history.state.prompterOpen) {
         prompterHistoryActive = false;
