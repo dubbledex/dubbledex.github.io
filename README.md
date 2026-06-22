@@ -1,318 +1,813 @@
-# dubbledex.github.io
-Test webpage for iiyama 10" screen lighting test v3 - test variables
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Android Room Bridge LED Test</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <style>
-    html, body {
-      background: #f5f5f5;
-      color: #222222;
-    }
-
-    body {
-      font-family: Arial, sans-serif;
-      margin: 24px;
-    }
-
-    h1 {
-      margin-top: 0;
-      color: #222222;
-    }
-
-    h2 {
-      color: #222222;
-    }
-
-    .card {
-      background-color: #ffffff;
-      color: #222222;
-      border-radius: 8px;
-      padding: 18px;
-      margin-bottom: 18px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
-    }
-
-    button {
-      display: inline-block;
-      margin: 6px 6px 6px 0;
-      padding: 12px 16px;
-      font-size: 16px;
-      border: 0;
-      border-radius: 5px;
-      background-color: #0066cc;
-      color: #ffffff;
-      cursor: pointer;
-    }
-
-    button.red {
-      background-color: #cc2222;
-      color: #ffffff;
-    }
-
-    button.green {
-      background-color: #168a31;
-      color: #ffffff;
-    }
-
-    button.yellow {
-      background-color: #d19a00;
-      color: #111111;
-    }
-
-    button.dark {
-      background-color: #444444;
-      color: #ffffff;
-    }
-
-    button.secondary {
-      background-color: #666666;
-      color: #ffffff;
-    }
-
-    label {
-      display: block;
-      margin: 10px 0;
-      font-weight: bold;
-      color: #222222;
-    }
-
-    input[type="checkbox"] {
-      transform: scale(1.25);
-      margin-right: 8px;
-    }
-
-    input[type="text"] {
-      width: 100%;
-      max-width: 760px;
-      padding: 8px;
-      font-size: 14px;
-      box-sizing: border-box;
-      font-family: monospace;
-      color: #000000;
-      background-color: #ffffff;
-      border: 1px solid #888888;
-    }
-
-    code {
-      background-color: #eeeeee;
-      color: #111111;
-      padding: 2px 4px;
-      border-radius: 3px;
-    }
-
-    .outputBox {
-      box-sizing: border-box;
-      width: 100%;
-      min-height: 52px;
-      padding: 14px;
-      margin-top: 8px;
-
-      background-color: #ffffff !important;
-      color: #000000 !important;
-
-      border: 4px solid #555555;
-      border-radius: 6px;
-
-      font-family: Arial, sans-serif;
-      font-size: 18px;
-      line-height: 1.45;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }
-
-    .outputBox.idle {
-      border-color: #555555;
-      background-color: #ffffff !important;
-      color: #000000 !important;
-    }
-
-    .outputBox.success {
-      border-color: #168a31;
-      background-color: #ffffff !important;
-      color: #000000 !important;
-    }
-
-    .outputBox.error {
-      border-color: #cc2222;
-      background-color: #ffffff !important;
-      color: #000000 !important;
-    }
-
-    .small {
-      font-size: 14px;
-      color: #555555;
-    }
-  </style>
-</head>
-
-<body>
-  <h1>Android Room Bridge LED Test</h1>
-
-  <div class="card">
-    <h2>Connection</h2>
-
-    <p>Bridge base URL:</p>
-    <p><code id="baseUrlText">http://127.0.0.1:8765</code></p>
-
-    <label>
-      <input id="secureToggle" type="checkbox" checked>
-      Use secured/tokenised mode
-    </label>
-
-    <p class="small">
-      When enabled, requests include <code>token=...</code>.
-      When disabled, requests are sent without a token.
-    </p>
-
-    <label for="tokenInput">Test token</label>
-    <input
-      id="tokenInput"
-      type="text"
-      value="5ed2dd01df168bad32c3ba2c20614e3be377abaee72ddeee9801a5403e88f014"
-    >
-  </div>
-
-  <div class="card">
-    <h2>Server Tests</h2>
-
-    <button class="secondary" onclick="ping()">Ping</button>
-    <button class="secondary" onclick="authPing()">Authenticated Ping</button>
-    <button class="secondary" onclick="showModel()">Show Model</button>
-  </div>
-
-  <div class="card">
-    <h2>LED Controls</h2>
-
-    <button onclick="setLed('on')">On</button>
-    <button class="green" onclick="setLed('green')">Green</button>
-    <button class="red" onclick="setLed('red')">Red</button>
-    <button class="yellow" onclick="setLed('yellow')">Yellow</button>
-    <button class="dark" onclick="setLed('off')">Off</button>
-  </div>
-
-  <div class="card">
-    <h2>Last Request</h2>
-    <div id="lastRequest" class="outputBox idle">No request yet.</div>
-  </div>
-
-  <div class="card">
-    <h2>Response</h2>
-    <div id="output" class="outputBox idle">No response yet.</div>
-  </div>
-
-  <script>
-    var BASE_URL = "http://127.0.0.1:8765";
-
-    function getToken() {
-      return document.getElementById("tokenInput").value.trim();
-    }
-
-    function isSecureMode() {
-      return document.getElementById("secureToggle").checked;
-    }
-
-    function buildUrl(path, params) {
-      var url = BASE_URL + path;
-      var queryParts = [];
-
-      if (params) {
-        for (var key in params) {
-          if (params.hasOwnProperty(key)) {
-            if (params[key] !== null && params[key] !== undefined) {
-              queryParts.push(
-                encodeURIComponent(key) + "=" + encodeURIComponent(params[key])
-              );
-            }
-          }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Web Teleprompter</title>
+    <!-- Tailwind CSS for rich dashboard styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for dashboard icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom scrollbars for presentation views */
+        ::-webkit-scrollbar {
+            width: 8px;
         }
-      }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.5);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(156, 163, 175, 0.8);
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col transition-all duration-300">
 
-      if (isSecureMode()) {
-        queryParts.push(
-          "token=" + encodeURIComponent(getToken())
-        );
-      }
+    <!-- SETUP VIEW -->
+    <div id="setup-view" class="container mx-auto px-4 py-8 flex-grow max-w-7xl">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center pb-6 mb-8 border-b border-slate-700 gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2.5 rounded-lg text-white shadow-lg shadow-blue-500/30">
+                    <i class="fa-solid fa-rectangle-list text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight text-white">Teleprompter Pro</h1>
+                    <p class="text-xs text-slate-400">Professional customizable web teleprompter</p>
+                </div>
+            </div>
+            
+            <button onclick="launchPrompter()" class="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/35 transition-all flex items-center justify-center gap-3 transform hover:-translate-y-0.5 active:translate-y-0">
+                <i class="fa-solid fa-play"></i> Start Prompting (Ref/Space)
+            </button>
+        </header>
 
-      if (queryParts.length > 0) {
-        url += "?" + queryParts.join("&");
-      }
+        <!-- Main Dashboard Split Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Left Panel: Settings Controls -->
+            <div class="lg:col-span-5 space-y-6">
+                <!-- Visual Config Panel -->
+                <div class="bg-slate-800/80 backdrop-blur-md rounded-2xl p-6 border border-slate-700/60 shadow-xl">
+                    <h2 class="text-lg font-bold text-white mb-5 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-blue-400"></i> Visual Configurations
+                    </h2>
+                    
+                    <div class="space-y-5">
+                        <!-- Mirror Options -->
+                        <div>
+                            <span class="block text-sm font-medium text-slate-400 mb-2">Display Flip / Mirroring</span>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button id="btn-mirror-horiz" onclick="toggleSetting('flipHorizontal')" class="py-2 px-3 border border-slate-700 bg-slate-850 hover:bg-slate-700 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition">
+                                    <i class="fa-solid fa-arrows-left-right"></i> Horizontal
+                                </button>
+                                <button id="btn-mirror-vert" onclick="toggleSetting('flipVertical')" class="py-2 px-3 border border-slate-700 bg-slate-850 hover:bg-slate-700 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition">
+                                    <i class="fa-solid fa-arrows-up-down"></i> Vertical
+                                </button>
+                            </div>
+                        </div>
 
-      return url;
-    }
+                        <!-- Font Size and Margin Indent Range sliders -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="flex justify-between text-sm font-medium text-slate-400 mb-1">
+                                    <span>Text Size</span>
+                                    <span id="label-text-size" class="text-blue-400 font-semibold mb-1">48px</span>
+                                </label>
+                                <input type="range" id="input-text-size" min="20" max="120" value="48" oninput="updateSetting('textSize', this.value)" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                            </div>
+                            <div>
+                                <label class="flex justify-between text-sm font-medium text-slate-400 mb-1">
+                                    <span>Side Margins</span>
+                                    <span id="label-indent" class="text-blue-400 font-semibold">15%</span>
+                                </label>
+                                <input type="range" id="input-indent" min="0" max="45" value="15" oninput="updateSetting('indent', this.value)" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                            </div>
+                        </div>
 
-    function setBoxText(id, text, state) {
-      var box = document.getElementById(id);
+                        <!-- Stylings and Colors -->
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <span class="block text-xs font-medium text-slate-400 mb-1">Text Color</span>
+                                <input type="color" id="input-text-color" value="#ffffff" oninput="updateSetting('textColor', this.value)" class="w-full h-10 border border-slate-700 bg-slate-900 rounded cursor-pointer p-1">
+                            </div>
+                            <div>
+                                <span class="block text-xs font-medium text-slate-400 mb-1">Bg Color</span>
+                                <input type="color" id="input-bg-color" value="#000000" oninput="updateSetting('bgColor', this.value)" class="w-full h-10 border border-slate-700 bg-slate-900 rounded cursor-pointer p-1">
+                            </div>
+                            <div>
+                                <span class="block text-xs font-medium text-slate-400 mb-1">Bg Opacity</span>
+                                <div class="flex items-center bg-slate-900 border border-slate-700 rounded h-10 px-2">
+                                    <input type="number" id="input-bg-opacity" value="100" min="0" max="100" oninput="updateSetting('bgOpacity', this.value)" class="w-full bg-transparent text-white text-sm focus:outline-none">
+                                    <span class="text-slate-500 text-xs">%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-      box.className = "outputBox " + state;
-      box.style.backgroundColor = "#ffffff";
-      box.style.color = "#000000";
-      box.style.display = "block";
-      box.innerText = text;
-      box.textContent = text;
-    }
+                <!-- Focus Guide Bar Settings -->
+                <div class="bg-slate-800/80 backdrop-blur-md rounded-2xl p-6 border border-slate-700/60 shadow-xl">
+                    <div class="flex justify-between items-center mb-5">
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-eye text-emerald-400"></i> Reading Focus Line
+                        </h2>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="input-focus-enabled" checked onchange="updateSetting('focusBarEnabled', this.checked)" class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-755 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                        </label>
+                    </div>
 
-    function setLastRequest(url) {
-      setBoxText("lastRequest", url, "success");
-    }
+                    <div id="focus-bar-controls-container" class="space-y-5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="flex justify-between text-sm font-medium text-slate-400 mb-1">
+                                    <span>Focus Height Offset</span>
+                                    <span id="label-focus-height" class="text-emerald-400 font-semibold">100px</span>
+                                </label>
+                                <input type="range" id="input-focus-height" min="40" max="300" value="100" oninput="updateSetting('focusBarHeight', this.value)" class="w-full h-2 bg-slate-755 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                            </div>
+                            <div>
+                                <label class="flex justify-between text-sm font-medium text-slate-400 mb-1">
+                                    <span>Screen Position</span>
+                                    <span id="label-focus-offset" class="text-emerald-400 font-semibold">35%</span>
+                                </label>
+                                <input type="range" id="input-focus-offset" min="10" max="90" value="35" oninput="updateSetting('focusOffset', this.value)" class="w-full h-2 bg-slate-755 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                            </div>
+                        </div>
 
-    function setOutput(text, isError) {
-      setBoxText("output", text, isError ? "error" : "success");
-    }
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <span class="block text-xs font-medium text-slate-400 mb-1">Focus Color</span>
+                                <input type="color" id="input-focus-color" value="#10b981" oninput="updateSetting('focusBarColor', this.value)" class="w-full h-10 border border-slate-700 bg-slate-900 rounded cursor-pointer p-1">
+                            </div>
+                            <div>
+                                <span class="block text-xs font-medium text-slate-400 mb-1">Focus Opacity</span>
+                                <div class="flex items-center bg-slate-900 border border-slate-700 rounded h-10 px-2">
+                                    <input type="number" id="input-focus-opacity" value="25" min="5" max="95" oninput="updateSetting('focusBarOpacity', this.value)" class="w-full bg-transparent text-white text-sm focus:outline-none">
+                                    <span class="text-slate-500 text-xs">%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-    function callBridge(url) {
-      setLastRequest(url);
-      setOutput("Waiting for response...", false);
+                <!-- Input Speed & Interactive Key Bindings Panel -->
+                <div class="bg-slate-800/80 backdrop-blur-md rounded-2xl p-6 border border-slate-700/60 shadow-xl">
+                    <h2 class="text-lg font-bold text-white mb-5 flex items-center gap-2">
+                        <i class="fa-solid fa-keyboard text-violet-400"></i> Speed & Keyboard Trowels
+                    </h2>
 
-      fetch(url, {
-        method: "GET",
-        cache: "no-store"
-      })
-      .then(function(response) {
-        return response.text().then(function(text) {
-          var display = "HTTP " + response.status + " " + response.statusText + "\n\n";
+                    <div class="space-y-4">
+                        <div>
+                            <label class="flex justify-between text-sm font-medium text-slate-400 mb-1">
+                                <span>Default Start Speed</span>
+                                <span id="label-start-speed" class="text-violet-400 font-semibold">3</span>
+                            </label>
+                            <input type="range" id="input-start-speed" min="-10" max="25" value="3" oninput="updateSetting('startSpeed', this.value)" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-violet-500">
+                        </div>
 
-          try {
-            var json = JSON.parse(text);
-            display += JSON.stringify(json, null, 2);
-          } catch (e) {
-            display += text;
-          }
+                        <!-- Keybindings Visual Configurator -->
+                        <div>
+                            <span class="block text-sm font-medium text-slate-400 mb-3">Key Bindings Configurator</span>
+                            <div class="space-y-2 text-xs">
+                                <div class="flex justify-between items-center py-2 px-3 bg-slate-900/50 rounded-lg border border-slate-700">
+                                    <span class="text-slate-350">Accelerate / Speed Up</span>
+                                    <button class="keybind-btn border border-violet-500/30 px-2.5 py-1 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider" onclick="captureKey('speedUp')" id="bind-speedUp">ArrowUp</button>
+                                </div>
+                                <div class="flex justify-between items-center py-2 px-3 bg-slate-900/50 rounded-lg border border-slate-700">
+                                    <span class="text-slate-350">Decelerate / Reverse</span>
+                                    <button class="keybind-btn border border-violet-500/30 px-2.5 py-1 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider" onclick="captureKey('speedDown')" id="bind-speedDown">ArrowDown</button>
+                                </div>
+                                <div class="flex justify-between items-center py-2 px-3 bg-slate-900/50 rounded-lg border border-slate-700">
+                                    <span class="text-slate-350">Start / Stop Toggle</span>
+                                    <button class="keybind-btn border border-violet-500/30 px-2.5 py-1 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider" onclick="captureKey('toggle')" id="bind-toggle">Space</button>
+                                </div>
+                                <div class="flex justify-between items-center py-2 px-3 bg-slate-900/50 rounded-lg border border-slate-700">
+                                    <span class="text-slate-350">Reset to Head</span>
+                                    <button class="keybind-btn border border-violet-500/30 px-2.5 py-1 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider" onclick="captureKey('reset')" id="bind-reset">KeyR</button>
+                                </div>
+                                <div class="flex justify-between items-center py-2 px-3 bg-slate-900/50 rounded-lg border border-slate-700">
+                                    <span class="text-slate-350">Exit teleprompter Mode</span>
+                                    <button class="keybind-btn border border-violet-500/30 px-2.5 py-1 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider" onclick="captureKey('exit')" id="bind-exit">Escape</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-          setOutput(display, !response.ok);
+            <!-- Right Panel: Script Editor & Storage integrations -->
+            <div class="lg:col-span-7 flex flex-col space-y-6">
+                
+                <div class="bg-slate-800/80 backdrop-blur-md rounded-2xl p-6 border border-slate-700/60 shadow-xl flex-grow flex flex-col">
+                    
+                    <!-- Title area and Integration toolbar -->
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                        <div class="w-full sm:w-auto">
+                            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Active File Script Name</label>
+                            <input type="text" id="input-file-name" value="untitled-script.txt" oninput="state.fileName = this.value; saveToLocalStorage();" class="bg-slate-900 border border-slate-700 text-white font-semibold rounded-lg px-3 py-1.5 w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                        </div>
+                        
+                        <!-- Integration Action Suite -->
+                        <div class="flex flex-wrap items-center gap-2">
+                            <!-- Native imports -->
+                            <button onclick="document.getElementById('native-file-loader').click()" class="bg-slate-700 hover:bg-slate-600 text-white text-xs px-3 py-2 rounded-lg font-bold flex items-center gap-1.5 pointer transition">
+                                <i class="fa-solid fa-file-import text-blue-400"></i> Import
+                            </button>
+                            <input type="file" id="native-file-loader" onchange="importLocalSystemFile(event)" accept=".txt,.rtf" class="hidden">
+                            
+                            <!-- Cloud hooks -->
+                            <button onclick="cloudIntegratorDialog('Google Drive')" class="bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-700/50 text-indigo-300 text-xs px-3 py-2 rounded-lg font-bold flex items-center gap-1.5 transition">
+                                <i class="fa-brands fa-google-drive text-emerald-400"></i> Google Drive
+                            </button>
+                            <button onclick="cloudIntegratorDialog('OneDrive')" class="bg-sky-950/60 hover:bg-sky-900/80 border border-sky-700/50 text-sky-300 text-xs px-3 py-2 rounded-lg font-bold flex items-center gap-1.5 transition">
+                                <i class="fa-brands fa-windows text-blue-400"></i> OneDrive
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Main Text-Area dynamic script editor -->
+                    <div class="flex-grow flex flex-col min-h-[350px]">
+                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Editor Script Console</label>
+                        <textarea id="main-script-editor" oninput="updateScriptText(this.value)" class="w-full flex-grow p-4 min-h-[350px] bg-slate-900 border border-slate-700 rounded-xl text-white font-mono text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Type or paste your presentation text right here..."></textarea>
+                    </div>
+
+                    <!-- Bottom saving modules -->
+                    <div class="flex flex-wrap justify-between items-center gap-3 mt-4 pt-4 border-t border-slate-700">
+                        <span class="text-xs text-emerald-400 font-medium flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-check"></i> Automatically compiled locally
+                        </span>
+                        
+                        <div class="flex items-center gap-2">
+                            <button onclick="exportScriptText('txt')" class="bg-blue-600/20 hover:bg-blue-600/35 text-blue-300 border border-blue-500/40 text-xs px-4 py-2.5 rounded-lg font-bold flex items-center gap-1.5 transition">
+                                <i class="fa-solid fa-file-lines"></i> Export .TXT
+                            </button>
+                            <button onclick="exportScriptText('rtf')" class="bg-blue-600/20 hover:bg-blue-600/35 text-blue-300 border border-blue-500/40 text-xs px-4 py-2.5 rounded-lg font-bold flex items-center gap-1.5 transition">
+                                <i class="fa-solid fa-file-word"></i> Export .RTF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- FULL SCREEN TELEPROMPTER ACTIVE VIEWPORT -->
+    <div id="prompter-viewport" class="fixed inset-0 z-50 hidden select-none overflow-hidden cursor-none flex flex-col">
+        <!-- Visual guide color-accented helper bar overlay (Static position, backdrop transparent text element scrolls beneath it) -->
+        <div id="prompter-focus-guide" class="absolute left-0 right-0 pointer-events-none z-10 transition-all border-y border-transparent"></div>
+
+        <!-- Scrollable dynamic text content frame -->
+        <div id="prompter-scroll-frame" class="w-full flex-grow overflow-y-scroll overflow-x-hidden focus:outline-none" style="-ms-overflow-style: none; scrollbar-width: none;">
+            <!-- Outer wrapper supporting mirror properties scale transforms -->
+            <div id="prompter-transform-layer" class="w-full min-h-full flex flex-col origin-center">
+                <!-- Inner element establishing configured side indents -->
+                <div id="prompter-content" class="w-full pt-[65vh] pb-[65vh] whitespace-pre-wrap breaks-word"></div>
+            </div>
+        </div>
+
+        <!-- On-Screen Teleprompter Heads-up Navigation Overlay (Displays speed values and triggers escape exit links on hovering edge) -->
+        <div id="prompter-status-hud" class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-900/90 border border-slate-700 px-6 py-3 rounded-2xl flex items-center gap-6 text-white text-xs opacity-0 hover:opacity-100 transition-opacity duration-300 z-30 shadow-2xl">
+            <div class="flex items-center gap-2 font-mono">
+                <span class="text-slate-400">Speed:</span>
+                <span id="hud-speed-val" class="text-blue-400 font-bold text-sm">0.0</span>
+            </div>
+            <div class="h-4 w-[1px] bg-slate-700"></div>
+            <div class="flex items-center gap-2">
+                <span class="text-slate-400">Control Keys:</span>
+                <span class="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-bold">▲/▼ Adjust</span>
+                <span class="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-bold">Space Pause</span>
+                <span class="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-bold">R Reset</span>
+            </div>
+            <div class="h-4 w-[1px] bg-slate-700"></div>
+            <button onclick="exitPrompter()" class="text-rose-450 hover:text-rose-400 font-bold flex items-center gap-1 transition">
+                <i class="fa-solid fa-rectangle-xmark"></i> Close (Esc)
+            </button>
+        </div>
+    </div>
+
+
+    <!-- System Interactive Toast Message Dialog and Modals -->
+    <div id="cloud-dialog" class="fixed inset-0 bg-black/75 z-55 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-slate-800 border border-slate-700 max-w-md w-full rounded-2xl p-6 shadow-2xl relative">
+            <button onclick="closeCloudDialog()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div id="cloud-dialog-icon" class="text-4xl text-blue-500 mb-4 text-center"></div>
+            <h3 id="cloud-dialog-title" class="text-xl font-bold text-white text-center mb-2">Cloud File Integration</h3>
+            <p id="cloud-dialog-body" class="text-sm text-slate-350 leading-relaxed mb-6 text-center"></p>
+            <div class="flex justify-center flex-wrap gap-2">
+                <!-- Standard input for cloud file mock simulation -->
+                <button onclick="document.getElementById('native-file-loader').click(); closeCloudDialog();" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-lg transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-file-lines"></i> Browse Synced Local Folder
+                </button>
+                <button onclick="closeCloudDialog()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-bold px-4 py-2.5 rounded-lg transition">
+                    Close Details
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- JAVASCRIPT LOGIC CONTROLLING CONFIGS, SCROLL ENGINE, & FILE EXPORTS -->
+    <script>
+        // Default state configuration objects
+        const state = {
+            text: "Welcome to Professional Web Teleprompter!\n\nThis application is a complete presentation engine that runs entirely within your browser.\n\nYou can configure display variables instantly on the setup dashboard:\n- Use Horizontal flip or vertical mirroring if writing scripts into beams using optical beamsplitter glass.\n- Set margins or side indents down to lock text lines directly in the center to reduce reader visual movement tracker fatigue.\n- Personalize spacing configurations, focus guideline tracking systems, background transparencies and customizable default keybindings.\n\nTo begin running the scrolling script, click 'Start Prompting' at top right or simply strike your designated Start/Stop toggle (by default, Spacebar).\n\nYou can map scroll speed actions dynamically to speed up (default Up Arrow) or speed down (default Down Arrow). Scrolling below speed 0 smoothly transitions the rendering flow into inverse backward motion to assist rapid backtracks!\n\nExport your script files into TXT formatted files, or standard RTF documents anytime. Import documents dynamically using the input interface.\n\nNow, edit this display layout, configure text sizes, trigger the play mode, look directly into the camera lens, and deliver a clean presentation!",
+            fileName: "teleprompter-script.txt",
+            flipHorizontal: false,
+            flipVertical: false,
+            textSize: 44,
+            textColor: "#ffffff",
+            bgColor: "#000000",
+            bgOpacity: 100,
+            indent: 14,
+            startSpeed: 4,
+            currentSpeed: 0,
+            isScrolling: false,
+            scrollPosition: 0,
+            focusBarEnabled: true,
+            focusBarHeight: 90,
+            focusOffset: 35,
+            focusBarColor: "#10b981", 
+            focusBarOpacity: 25,
+            bindings: {
+                speedUp: "ArrowUp",
+                speedDown: "ArrowDown",
+                toggle: " ", // Space bar representation
+                reset: "KeyR",
+                exit: "Escape"
+            }
+        };
+
+        // Variable capture states for registering custom keybindings
+        let captureTarget = null;
+        let animationFrameId = null;
+        let lastTimestamp = 0;
+
+        // On document initialization
+        window.addEventListener('load', () => {
+            loadFromLocalStorage();
+            initializeUIValues();
+            applyInteractiveHighlights();
         });
-      })
-      .catch(function(err) {
-        setOutput("Request failed:\n\n" + err.message, true);
-      });
-    }
 
-    function ping() {
-      callBridge(BASE_URL + "/ping");
-    }
+        // Local Storage persistent handlers
+        function saveToLocalStorage() {
+            localStorage.setItem('tp_state', JSON.stringify({
+                text: state.text,
+                fileName: state.fileName,
+                flipHorizontal: state.flipHorizontal,
+                flipVertical: state.flipVertical,
+                textSize: state.textSize,
+                textColor: state.textColor,
+                bgColor: state.bgColor,
+                bgOpacity: state.bgOpacity,
+                indent: state.indent,
+                startSpeed: state.startSpeed,
+                focusBarEnabled: state.focusBarEnabled,
+                focusBarHeight: state.focusBarHeight,
+                focusOffset: state.focusOffset,
+                focusBarColor: state.focusBarColor,
+                focusBarOpacity: state.focusBarOpacity,
+                bindings: state.bindings
+            }));
+        }
 
-    function authPing() {
-      callBridge(buildUrl("/auth/ping", {}));
-    }
+        function loadFromLocalStorage() {
+            const raw = localStorage.getItem('tp_state');
+            if (raw) {
+                try {
+                    const parsed = JSON.parse(raw);
+                    Object.assign(state, parsed);
+                } catch (e) {
+                    console.error("Local storage sync error", e);
+                }
+            }
+        }
 
-    function showModel() {
-      callBridge(buildUrl("/model", {}));
-    }
+        // Initialize form elements with variables
+        function initializeUIValues() {
+            document.getElementById('main-script-editor').value = state.text;
+            document.getElementById('input-file-name').value = state.fileName;
+            
+            document.getElementById('input-text-size').value = state.textSize;
+            document.getElementById('label-text-size').innerText = state.textSize + 'px';
+            
+            document.getElementById('input-indent').value = state.indent;
+            document.getElementById('label-indent').innerText = state.indent + '%';
+            
+            document.getElementById('input-text-color').value = state.textColor;
+            document.getElementById('input-bg-color').value = state.bgColor;
+            document.getElementById('input-bg-opacity').value = state.bgOpacity;
+            
+            document.getElementById('input-start-speed').value = state.startSpeed;
+            document.getElementById('label-start-speed').innerText = state.startSpeed;
+            
+            document.getElementById('input-focus-enabled').checked = state.focusBarEnabled;
+            document.getElementById('input-focus-height').value = state.focusBarHeight;
+            document.getElementById('label-focus-height').innerText = state.focusBarHeight + 'px';
+            
+            document.getElementById('input-focus-offset').value = state.focusOffset;
+            document.getElementById('label-focus-offset').innerText = state.focusOffset + '%';
+            
+            document.getElementById('input-focus-color').value = state.focusBarColor;
+            document.getElementById('input-focus-opacity').value = state.focusBarOpacity;
 
-    function setLed(color) {
-      callBridge(buildUrl("/led", {
-        color: color
-      }));
-    }
+            configureFocusBarSubElements();
+            updateBindingsUI();
+        }
 
-    document.getElementById("baseUrlText").innerText = BASE_URL;
-    document.getElementById("baseUrlText").textContent = BASE_URL;
-  </script>
+        // Dynamic element value sync setters
+        function updateSetting(key, val) {
+            if (key === 'focusBarEnabled') {
+                state[key] = Boolean(val);
+                configureFocusBarSubElements();
+            } else if (key === 'bgOpacity' || key === 'focusBarOpacity') {
+                state[key] = Math.max(0, Math.min(100, parseInt(val) || 0));
+            } else if (key === 'textSize' || key === 'indent' || key === 'startSpeed' || key === 'focusBarHeight' || key === 'focusOffset') {
+                state[key] = parseInt(val);
+            } else {
+                state[key] = val;
+            }
+
+            // Update interactive element visual badges
+            if (key === 'textSize') document.getElementById('label-text-size').innerText = val + 'px';
+            if (key === 'indent') document.getElementById('label-indent').innerText = val + '%';
+            if (key === 'startSpeed') document.getElementById('label-start-speed').innerText = val;
+            if (key === 'focusBarHeight') document.getElementById('label-focus-height').innerText = val + 'px';
+            if (key === 'focusOffset') document.getElementById('label-focus-offset').innerText = val + '%';
+
+            saveToLocalStorage();
+            applyInteractiveHighlights();
+        }
+
+        function toggleSetting(key) {
+            state[key] = !state[key];
+            saveToLocalStorage();
+            applyInteractiveHighlights();
+        }
+
+        function updateScriptText(txt) {
+            state.text = txt;
+            saveToLocalStorage();
+        }
+
+        function configureFocusBarSubElements() {
+            const pane = document.getElementById('focus-bar-controls-container');
+            if (state.focusBarEnabled) {
+                pane.classList.remove('opacity-40', 'pointer-events-none');
+            } else {
+                pane.classList.add('opacity-40', 'pointer-events-none');
+            }
+        }
+
+        // Highlight custom visual configuration control borders
+        function applyInteractiveHighlights() {
+            // Horizontal switch style
+            const hBtn = document.getElementById('btn-mirror-horiz');
+            if (state.flipHorizontal) {
+                hBtn.classList.add('bg-blue-600/20', 'border-blue-500', 'text-blue-400 font-bold');
+            } else {
+                hBtn.classList.remove('bg-blue-600/20', 'border-blue-500', 'text-blue-400 font-bold');
+            }
+            
+            // Vertical switch style
+            const vBtn = document.getElementById('btn-mirror-vert');
+            if (state.flipVertical) {
+                vBtn.classList.add('bg-blue-600/20', 'border-blue-500', 'text-blue-400 font-bold');
+            } else {
+                vBtn.classList.remove('bg-blue-600/20', 'border-blue-500', 'text-blue-400 font-bold');
+            }
+        }
+
+        // Custom Key Binding interceptors
+        function updateBindingsUI() {
+            for (const [bindingName, keyString] of Object.entries(state.bindings)) {
+                const btn = document.getElementById(`bind-${bindingName}`);
+                if (btn) {
+                    btn.innerText = keyString === " " ? "Space" : keyString;
+                }
+            }
+        }
+
+        function captureKey(bindingName) {
+            captureTarget = bindingName;
+            const btn = document.getElementById(`bind-${bindingName}`);
+            btn.innerText = "Strike a Key...";
+            btn.classList.add('bg-rose-950/50', 'text-rose-400', 'border-rose-500/50', 'animate-pulse');
+        }
+
+        window.addEventListener('keydown', (e) => {
+            // If capturing a key mapping
+            if (captureTarget) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Allow back out key
+                let assigned = e.code === "Space" ? " " : e.code;
+                if (!assigned) {
+                    assigned = e.key;
+                }
+                
+                state.bindings[captureTarget] = assigned;
+                
+                const btn = document.getElementById(`bind-${captureTarget}`);
+                btn.classList.remove('bg-rose-950/50', 'text-rose-400', 'border-rose-500/50', 'animate-pulse');
+                
+                captureTarget = null;
+                saveToLocalStorage();
+                updateBindingsUI();
+                return;
+            }
+
+            // Keyboard controller mappings logic when using Teleprompter View Mode
+            const isPrompterActive = !document.getElementById('prompter-viewport').classList.contains('hidden');
+            if (isPrompterActive) {
+                const key = e.code === "Space" ? " " : e.code;
+                
+                if (key === state.bindings.toggle) {
+                    e.preventDefault();
+                    toggleScrollPlay();
+                } else if (key === state.bindings.speedUp) {
+                    e.preventDefault();
+                    adjustPrompterSpeed(0.5);
+                } else if (key === state.bindings.speedDown) {
+                    e.preventDefault();
+                    adjustPrompterSpeed(-0.5);
+                } else if (key === state.bindings.reset) {
+                    e.preventDefault();
+                    resetPrompterToStart();
+                } else if (key === state.bindings.exit) {
+                    e.preventDefault();
+                    exitPrompter();
+                }
+            }
+        });
+
+        // Launch & Style calculations for Prompter Mode Viewport
+        function launchPrompter() {
+            // Apply visual setups dynamically to viewport components
+            const viewport = document.getElementById('prompter-viewport');
+            const transformLayer = document.getElementById('prompter-transform-layer');
+            const content = document.getElementById('prompter-content');
+            const guide = document.getElementById('prompter-focus-guide');
+
+            // BG Hex Color conversion to support specific opacity levels
+            const rVal = parseInt(state.bgColor.slice(1, 3), 16);
+            const gVal = parseInt(state.bgColor.slice(3, 5), 16);
+            const bVal = parseInt(state.bgColor.slice(5, 7), 16);
+            viewport.style.backgroundColor = `rgba(${rVal}, ${gVal}, ${bVal}, ${state.bgOpacity / 100})`;
+
+            // Typography configurations
+            content.style.fontSize = `${state.textSize}px`;
+            content.style.color = state.textColor;
+            content.style.lineHeight = "1.5";
+            
+            // Mirror scale transform modifiers
+            let scaleX = state.flipHorizontal ? -1 : 1;
+            let scaleY = state.flipVertical ? -1 : 1;
+            transformLayer.style.transform = `scale(${scaleX}, ${scaleY})`;
+
+            // Text layout side indents
+            content.style.paddingLeft = `${state.indent}%`;
+            content.style.paddingRight = `${state.indent}%`;
+
+            // Dynamic Script loader
+            content.innerText = state.text;
+
+            // Set dynamic values on local scroll registers
+            state.scrollPosition = 0;
+            state.currentSpeed = 0; // Starts stopped
+            state.isScrolling = false;
+            updateHudDisplay();
+
+            const scrollFrame = document.getElementById('prompter-scroll-frame');
+            scrollFrame.scrollTop = 0;
+
+            // Focus Line placement configurations
+            if (state.focusBarEnabled) {
+                guide.classList.remove('hidden');
+                guide.style.top = `${state.focusOffset}vh`;
+                
+                // Subtracting half the bar height dynamic positioning to assure optical center tracking alignment
+                guide.style.height = `${state.focusBarHeight}px`;
+                guide.style.marginTop = `${-(state.focusBarHeight / 2)}px`;
+                
+                const fR = parseInt(state.focusBarColor.slice(1,3), 16);
+                const fG = parseInt(state.focusBarColor.slice(3,5), 16);
+                const fB = parseInt(state.focusBarColor.slice(5,7), 16);
+                guide.style.backgroundColor = `rgba(${fR}, ${fG}, ${fB}, ${state.focusBarOpacity / 100})`;
+                guide.style.borderColor = `rgba(${fR}, ${fG}, ${fB}, ${(state.focusBarOpacity + 20) / 100})`;
+            } else {
+                guide.classList.add('hidden');
+            }
+
+            // Launch Screen
+            viewport.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+
+            // Begin rendering engine frame ticks
+            lastTimestamp = performance.now();
+            animationFrameId = requestAnimationFrame(scrollingEngineTick);
+        }
+
+        function exitPrompter() {
+            cancelAnimationFrame(animationFrameId);
+            document.getElementById('prompter-viewport').classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+            state.isScrolling = false;
+        }
+
+        // Kinetic scrolling paint tick loop handler using requestAnimationFrame
+        function scrollingEngineTick(timestamp) {
+            const scrollFrame = document.getElementById('prompter-scroll-frame');
+            const delta = (timestamp - lastTimestamp) / 1000; // time offset
+            lastTimestamp = timestamp;
+
+            if (state.isScrolling && state.currentSpeed !== 0) {
+                // Calculate dynamic pixel step offset per second 
+                // Scale factor converts raw speed levels to pixel distances
+                const step = state.currentSpeed * 25 * delta;
+                
+                state.scrollPosition += step;
+
+                // Set upper and lower bounds check
+                const maxScrollLimit = scrollFrame.scrollHeight - scrollFrame.clientHeight;
+                if (state.scrollPosition > maxScrollLimit) {
+                    state.scrollPosition = maxScrollLimit;
+                    state.isScrolling = false;
+                    state.currentSpeed = 0;
+                    updateHudDisplay();
+                } else if (state.scrollPosition < 0) {
+                    state.scrollPosition = 0;
+                    state.isScrolling = false;
+                    state.currentSpeed = 0;
+                    updateHudDisplay();
+                }
+
+                scrollFrame.scrollTop = state.scrollPosition;
+            }
+
+            animationFrameId = requestAnimationFrame(scrollingEngineTick);
+        }
+
+        // Toggle state for starting/stopping
+        function toggleScrollPlay() {
+            state.isScrolling = !state.isScrolling;
+            if (state.isScrolling && state.currentSpeed === 0) {
+                // Instantly pick up the default configured speed target
+                state.currentSpeed = state.startSpeed;
+            }
+            updateHudDisplay();
+        }
+
+        // Adjust scroll speeds on user action
+        function adjustPrompterSpeed(amount) {
+            // Speed controls also trigger continuous scrolling behaviors automatically
+            if (!state.isScrolling) {
+                state.isScrolling = true;
+            }
+            state.currentSpeed = parseFloat((state.currentSpeed + amount).toFixed(1));
+            updateHudDisplay();
+        }
+
+        // Instantly snap scroll frame position back to head 
+        function resetPrompterToStart() {
+            state.scrollPosition = 0;
+            const scrollFrame = document.getElementById('prompter-scroll-frame');
+            scrollFrame.scrollTop = 0;
+            state.isScrolling = false;
+            state.currentSpeed = 0;
+            updateHudDisplay();
+        }
+
+        // Print active settings variables directly upon screen hud
+        function updateHudDisplay() {
+            const hudVal = document.getElementById('hud-speed-val');
+            hudVal.innerText = state.isScrolling ? state.currentSpeed.toFixed(1) : "PAUSED (" + state.currentSpeed.toFixed(1) + ")";
+            
+            // Highlight text if moving backwards
+            if (state.currentSpeed < 0) {
+                hudVal.classList.remove('text-blue-400');
+                hudVal.classList.add('text-amber-400');
+            } else {
+                hudVal.classList.remove('text-amber-400');
+                hudVal.classList.add('text-blue-400');
+            }
+        }
+
+        // FILE EXPORT UTILITY HANDLERS
+        function exportScriptText(format) {
+            const textToSave = state.text;
+            let mimeType = "text/plain";
+            let filename = state.fileName;
+            let outputContent = "";
+
+            if (format === 'txt') {
+                outputContent = textToSave;
+                if (!filename.endsWith('.txt')) {
+                    filename = filename.replace(/\.[^/.]+$/, "") + ".txt";
+                }
+            } else if (format === 'rtf') {
+                mimeType = "application/rtf";
+                if (!filename.endsWith('.rtf')) {
+                    filename = filename.replace(/\.[^/.]+$/, "") + ".rtf";
+                }
+                
+                // Simple standardized RTF structural header builder
+                const escapedText = textToSave
+                    .replace(/\\/g, "\\\\")
+                    .replace(/{/g, "\\{")
+                    .replace(/}/g, "\\}")
+                    .replace(/\n/g, "\\par\n");
+
+                outputContent = `{\\rtf1\\ansi\\ansicpg1252\\deff0\\nouicompat{\\fonttbl{\\f0\\fnil\\fcharset0 Arial;}}\n{\\*\\generator TeleprompterPro;}\\viewkind4\\uc1\n\\pard\\f0\\fs28 ${escapedText}\\par\n}`;
+            }
+
+            // Client download generator hook
+            const blob = new Blob([outputContent], { type: mimeType });
+            const tempLink = document.createElement("a");
+            tempLink.download = filename;
+            tempLink.href = window.URL.createObjectURL(blob);
+            tempLink.click();
+            window.URL.revokeObjectURL(tempLink.href);
+        }
+
+        // LOCAL FILE IMPORT HANDLER
+        function importLocalSystemFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            state.fileName = file.name;
+            document.getElementById('input-file-name').value = file.name;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                let content = e.target.result;
+                
+                if (file.name.endsWith('.rtf')) {
+                    content = stripRawRTF(content);
+                }
+                
+                state.text = content;
+                document.getElementById('main-script-editor').value = content;
+                saveToLocalStorage();
+            };
+            
+            reader.readAsText(file);
+        }
+
+        // Basic helper Regex parser to strip presentation text out of RTF envelopes
+        function stripRawRTF(rtfStr) {
+            let clean = rtfStr;
+            // 1. Strip out headers & controls matching standard RTF constructs
+            clean = clean.replace(/\\rtf1[\s\S]*?\\viewkind4\\uc1[\s\S]*?\\pard/g, "");
+            clean = clean.replace(/\\[a-z0-9\-]+(\s|;)?/g, " ");
+            clean = clean.replace(/\{[^\{\}]*\}/g, "");
+            clean = clean.replace(/\}/g, "");
+            clean = clean.replace(/\{/g, "");
+            
+            // Clean consecutive blank spacings lines
+            clean = clean.trim();
+            return clean;
+        }
+
+        // Cloud Drive Dialog simulator explaining synchronization integration setup
+        function cloudIntegratorDialog(serviceName) {
+            const dialog = document.getElementById('cloud-dialog');
+            const iconWrap = document.getElementById('cloud-dialog-icon');
+            const title = document.getElementById('cloud-dialog-title');
+            const body = document.getElementById('cloud-dialog-body');
+
+            title.innerText = `${serviceName} Integration`;
+
+            if (serviceName === "Google Drive") {
+                iconWrap.innerHTML = `<i class="fa-brands fa-google-drive"></i>`;
+                body.innerHTML = `To read directly from <strong>Google Drive</strong>, we highly recommend synced folders:<br><br>
+                1. Save file directly inside your Google Drive Sync Folder locally on your Desktop.<br>
+                2. Select <strong>Import File</strong> locally to browse.<br>
+                3. Your changes sync to the cloud automatically when you edit or save directly using this interface!`;
+            } else {
+                iconWrap.innerHTML = `<i class="fa-brands fa-windows text-sky-400"></i>`;
+                body.innerHTML = `To read directly from <strong>Microsoft OneDrive</strong> sync:<br><br>
+                1. Simply save text formatting files directly in OneDrive folders.<br>
+                2. Tap import, browse OneDrive's mounting directories.<br>
+                3. Saving your export downloads will automatically upload updates into active MS files!`;
+            }
+
+            dialog.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function closeCloudDialog() {
+            document.getElementById('cloud-dialog').classList.add('opacity-0', 'pointer-events-none');
+        }
+    </script>
 </body>
 </html>
-
-
