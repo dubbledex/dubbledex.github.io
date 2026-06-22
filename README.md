@@ -27,6 +27,9 @@
 </head>
 <body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col transition-all duration-300">
 
+    <!-- HIDDEN INPUT TO FORCE VIRTUAL KEYBOARD POPULATION ON MOBILE -->
+    <input type="text" id="hidden-key-binder" class="absolute opacity-0 pointer-events-none w-px h-px" aria-hidden="true" autocomplete="off">
+
     <!-- SETUP VIEW -->
     <div id="setup-view" class="container mx-auto px-4 py-8 flex-grow max-w-7xl">
         <!-- Header -->
@@ -159,41 +162,55 @@
                 <!-- Input Speed & Interactive Key Bindings Panel -->
                 <div class="bg-slate-800/80 backdrop-blur-md rounded-2xl p-6 border border-slate-700/60 shadow-xl">
                     <h2 class="text-lg font-bold text-white mb-5 flex items-center gap-2">
-                        <i class="fa-solid fa-keyboard text-violet-400"></i> Speed & Keyboard Trowels
+                        <i class="fa-solid fa-keyboard text-violet-400"></i> Speed & Keyboard Controls
                     </h2>
 
                     <div class="space-y-4">
                         <div>
                             <label class="flex justify-between text-sm font-medium text-slate-400 mb-1">
                                 <span>Default Start Speed</span>
-                                <span id="label-start-speed" class="text-violet-400 font-semibold">3</span>
+                                <span id="label-start-speed" class="text-violet-400 font-semibold">4</span>
                             </label>
-                            <input type="range" id="input-start-speed" min="-10" max="25" value="3" oninput="updateSetting('startSpeed', this.value)" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-violet-500">
+                            <input type="range" id="input-start-speed" min="-10" max="25" value="4" oninput="updateSetting('startSpeed', this.value)" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-violet-500">
+                        </div>
+
+                        <!-- BLUETOOTH PRESENTER REMOTE SWITCH -->
+                        <div class="bg-violet-950/40 border border-violet-500/30 rounded-xl p-4 flex items-center justify-between">
+                            <div>
+                                <h3 class="text-sm font-bold text-violet-300 flex items-center gap-2">
+                                    <i class="fa-solid fa-toggle-on text-emerald-400"></i> Bluetooth Presenter Clicker Mode
+                                </h3>
+                                <p class="text-[11px] text-slate-400 mt-0.5">Binds [PageDown]/[Next] to Speed Up and [PageUp]/[Back] to Slow Down.</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="input-presenter-mode" onchange="updateSetting('presenterMode', this.checked)" class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-705 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                            </label>
                         </div>
 
                         <!-- Keybindings Visual Configurator -->
-                        <div>
-                            <span class="block text-sm font-medium text-slate-400 mb-3">Key Bindings Configurator</span>
+                        <div id="keybindings-standard-menu">
+                            <span class="block text-sm font-medium text-slate-400 mb-3">Custom Keyboard Bindings</span>
                             <div class="space-y-2 text-xs">
                                 <div class="flex justify-between items-center py-2 px-3 bg-slate-900/50 rounded-lg border border-slate-700">
                                     <span class="text-slate-350">Accelerate / Speed Up</span>
-                                    <button class="keybind-btn border border-violet-500/30 px-2.5 py-1 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider" onclick="captureKey('speedUp')" id="bind-speedUp">ArrowUp</button>
+                                    <button class="keybind-btn border border-violet-500/30 px-2.5 py-1 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider hover:bg-violet-900/40" onclick="captureKey('speedUp')" id="bind-speedUp">ArrowUp</button>
                                 </div>
                                 <div class="flex justify-between items-center py-2 px-3 bg-slate-900/50 rounded-lg border border-slate-700">
                                     <span class="text-slate-350">Decelerate / Reverse</span>
-                                    <button class="keybind-btn border border-violet-500/30 px-2.5 py-1 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider" onclick="captureKey('speedDown')" id="bind-speedDown">ArrowDown</button>
+                                    <button class="keybind-btn border border-violet-500/30 px-2.5 py-1 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider hover:bg-violet-900/40" onclick="captureKey('speedDown')" id="bind-speedDown">ArrowDown</button>
                                 </div>
                                 <div class="flex justify-between items-center py-2 px-3 bg-slate-900/50 rounded-lg border border-slate-700">
                                     <span class="text-slate-350">Start / Stop Toggle</span>
-                                    <button class="keybind-btn border border-violet-500/30 px-2.5 py-1 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider" onclick="captureKey('toggle')" id="bind-toggle">Space</button>
+                                    <button class="keybind-btn border border-violet-500/30 px-2.5 py-1 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider hover:bg-violet-900/40" onclick="captureKey('toggle')" id="bind-toggle">Space</button>
                                 </div>
                                 <div class="flex justify-between items-center py-2 px-3 bg-slate-900/50 rounded-lg border border-slate-700">
                                     <span class="text-slate-350">Reset to Head</span>
-                                    <button class="keybind-btn border border-violet-500/30 px-2.5 py-1 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider" onclick="captureKey('reset')" id="bind-reset">KeyR</button>
+                                    <button class="keybind-btn border border-violet-500/30 px-2.5 py-1 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider hover:bg-violet-900/40" onclick="captureKey('reset')" id="bind-reset">KeyR</button>
                                 </div>
                                 <div class="flex justify-between items-center py-2 px-3 bg-slate-900/50 rounded-lg border border-slate-700">
-                                    <span class="text-slate-350">Exit teleprompter Mode</span>
-                                    <button class="keybind-btn border border-violet-500/30 px-2.5 py-1 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider" onclick="captureKey('exit')" id="bind-exit">Escape</button>
+                                    <span class="text-slate-350">Exit Teleprompter Mode</span>
+                                    <button class="keybind-btn border border-violet-500/30 px-2.5 py-1 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider hover:bg-violet-900/40" onclick="captureKey('exit')" id="bind-exit">Escape</button>
                                 </div>
                             </div>
                         </div>
@@ -260,7 +277,7 @@
 
     <!-- FULL SCREEN TELEPROMPTER ACTIVE VIEWPORT -->
     <div id="prompter-viewport" class="fixed inset-0 z-50 hidden select-none overflow-hidden cursor-none flex flex-col">
-        <!-- Visual guide color-accented helper bar overlay (Static position, backdrop transparent text element scrolls beneath it) -->
+        <!-- Visual guide color-accented helper bar overlay -->
         <div id="prompter-focus-guide" class="absolute left-0 right-0 pointer-events-none z-10 transition-all border-y border-transparent"></div>
 
         <!-- Scrollable dynamic text content frame -->
@@ -272,7 +289,7 @@
             </div>
         </div>
 
-        <!-- On-Screen Teleprompter Heads-up Navigation Overlay (Displays speed values and triggers escape exit links on hovering edge) -->
+        <!-- On-Screen Teleprompter Heads-up Navigation Overlay -->
         <div id="prompter-status-hud" class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-900/90 border border-slate-700 px-6 py-3 rounded-2xl flex items-center gap-6 text-white text-xs opacity-0 hover:opacity-100 transition-opacity duration-300 z-30 shadow-2xl">
             <div class="flex items-center gap-2 font-mono">
                 <span class="text-slate-400">Speed:</span>
@@ -303,7 +320,6 @@
             <h3 id="cloud-dialog-title" class="text-xl font-bold text-white text-center mb-2">Cloud File Integration</h3>
             <p id="cloud-dialog-body" class="text-sm text-slate-350 leading-relaxed mb-6 text-center"></p>
             <div class="flex justify-center flex-wrap gap-2">
-                <!-- Standard input for cloud file mock simulation -->
                 <button onclick="document.getElementById('native-file-loader').click(); closeCloudDialog();" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-lg transition flex items-center gap-1.5">
                     <i class="fa-solid fa-file-lines"></i> Browse Synced Local Folder
                 </button>
@@ -337,6 +353,7 @@
             focusOffset: 35,
             focusBarColor: "#10b981", 
             focusBarOpacity: 25,
+            presenterMode: false,
             bindings: {
                 speedUp: "ArrowUp",
                 speedDown: "ArrowDown",
@@ -376,6 +393,7 @@
                 focusOffset: state.focusOffset,
                 focusBarColor: state.focusBarColor,
                 focusBarOpacity: state.focusBarOpacity,
+                presenterMode: state.presenterMode,
                 bindings: state.bindings
             }));
         }
@@ -419,8 +437,11 @@
             
             document.getElementById('input-focus-color').value = state.focusBarColor;
             document.getElementById('input-focus-opacity').value = state.focusBarOpacity;
+            
+            document.getElementById('input-presenter-mode').checked = state.presenterMode;
 
             configureFocusBarSubElements();
+            togglePresenterUILayout();
             updateBindingsUI();
         }
 
@@ -429,6 +450,9 @@
             if (key === 'focusBarEnabled') {
                 state[key] = Boolean(val);
                 configureFocusBarSubElements();
+            } else if (key === 'presenterMode') {
+                state[key] = Boolean(val);
+                togglePresenterUILayout();
             } else if (key === 'bgOpacity' || key === 'focusBarOpacity') {
                 state[key] = Math.max(0, Math.min(100, parseInt(val) || 0));
             } else if (key === 'textSize' || key === 'indent' || key === 'startSpeed' || key === 'focusBarHeight' || key === 'focusOffset') {
@@ -468,9 +492,17 @@
             }
         }
 
+        function togglePresenterUILayout() {
+            const container = document.getElementById('keybindings-standard-menu');
+            if (state.presenterMode) {
+                container.classList.add('opacity-30', 'pointer-events-none');
+            } else {
+                container.classList.remove('opacity-30', 'pointer-events-none');
+            }
+        }
+
         // Highlight custom visual configuration control borders
         function applyInteractiveHighlights() {
-            // Horizontal switch style
             const hBtn = document.getElementById('btn-mirror-horiz');
             if (state.flipHorizontal) {
                 hBtn.classList.add('bg-blue-600/20', 'border-blue-500', 'text-blue-400 font-bold');
@@ -478,7 +510,6 @@
                 hBtn.classList.remove('bg-blue-600/20', 'border-blue-500', 'text-blue-400 font-bold');
             }
             
-            // Vertical switch style
             const vBtn = document.getElementById('btn-mirror-vert');
             if (state.flipVertical) {
                 vBtn.classList.add('bg-blue-600/20', 'border-blue-500', 'text-blue-400 font-bold');
@@ -497,33 +528,60 @@
             }
         }
 
+        // Dynamic Capture Key supporting mobile on-screen keyboard trigger
         function captureKey(bindingName) {
             captureTarget = bindingName;
+            
+            // Adjust visual label states
             const btn = document.getElementById(`bind-${bindingName}`);
-            btn.innerText = "Strike a Key...";
+            btn.innerText = "Press key...";
             btn.classList.add('bg-rose-950/50', 'text-rose-400', 'border-rose-500/50', 'animate-pulse');
+
+            // Force mobile focus onto hidden element to programmatically prompt physical on-screen virtual keyboard
+            const forceInput = document.getElementById('hidden-key-binder');
+            forceInput.value = "";
+            forceInput.focus();
         }
 
-        window.addEventListener('keydown', (e) => {
-            // If capturing a key mapping
+        // On Keyboard selection handler
+        function handleKeyCapture(pressedCode, pressedKey) {
+            if (!captureTarget) return;
+
+            let assigned = pressedCode;
+            if (pressedCode === "Space" || pressedKey === " ") {
+                assigned = " ";
+            } else if (!assigned) {
+                assigned = pressedKey;
+            }
+
+            state.bindings[captureTarget] = assigned;
+
+            const btn = document.getElementById(`bind-${captureTarget}`);
+            btn.classList.remove('bg-rose-950/50', 'text-rose-400', 'border-rose-500/50', 'animate-pulse');
+
+            // Reset and remove inputs
+            captureTarget = null;
+            document.getElementById('hidden-key-binder').blur();
+            
+            saveToLocalStorage();
+            updateBindingsUI();
+        }
+
+        // Event listener hooks on physical virtual interface input
+        document.getElementById('hidden-key-binder').addEventListener('keydown', (e) => {
             if (captureTarget) {
                 e.preventDefault();
                 e.stopPropagation();
-                
-                // Allow back out key
-                let assigned = e.code === "Space" ? " " : e.code;
-                if (!assigned) {
-                    assigned = e.key;
-                }
-                
-                state.bindings[captureTarget] = assigned;
-                
-                const btn = document.getElementById(`bind-${captureTarget}`);
-                btn.classList.remove('bg-rose-950/50', 'text-rose-400', 'border-rose-500/50', 'animate-pulse');
-                
-                captureTarget = null;
-                saveToLocalStorage();
-                updateBindingsUI();
+                handleKeyCapture(e.code, e.key);
+            }
+        });
+
+        window.addEventListener('keydown', (e) => {
+            // Check if key capturing is currently active
+            if (captureTarget) {
+                e.preventDefault();
+                e.stopPropagation();
+                handleKeyCapture(e.code, e.key);
                 return;
             }
 
@@ -531,20 +589,43 @@
             const isPrompterActive = !document.getElementById('prompter-viewport').classList.contains('hidden');
             if (isPrompterActive) {
                 const key = e.code === "Space" ? " " : e.code;
-                
-                if (key === state.bindings.toggle) {
+                const valueKey = e.key;
+
+                // 1. BLUETOOTH PRESENTER OVERRIDE
+                if (state.presenterMode) {
+                    // PageDown is commonly mapped to the "Next" clicker button. PageUp to "Prev" button.
+                    if (valueKey === "PageDown" || key === "PageDown" || key === "ArrowRight") {
+                        e.preventDefault();
+                        adjustPrompterSpeed(0.5);
+                        return;
+                    }
+                    if (valueKey === "PageUp" || key === "PageUp" || key === "ArrowLeft") {
+                        e.preventDefault();
+                        adjustPrompterSpeed(-0.5);
+                        return;
+                    }
+                    // Map common presenter default Esc/Black screen to Play Toggle
+                    if (key === "Escape" || key === "Escape") {
+                        e.preventDefault();
+                        toggleScrollPlay();
+                        return;
+                    }
+                }
+
+                // 2. STANDARD DEFAULT CUSTOM KEYBINDS
+                if (key === state.bindings.toggle || valueKey === state.bindings.toggle) {
                     e.preventDefault();
                     toggleScrollPlay();
-                } else if (key === state.bindings.speedUp) {
+                } else if (key === state.bindings.speedUp || valueKey === state.bindings.speedUp) {
                     e.preventDefault();
                     adjustPrompterSpeed(0.5);
-                } else if (key === state.bindings.speedDown) {
+                } else if (key === state.bindings.speedDown || valueKey === state.bindings.speedDown) {
                     e.preventDefault();
                     adjustPrompterSpeed(-0.5);
-                } else if (key === state.bindings.reset) {
+                } else if (key === state.bindings.reset || valueKey === state.bindings.reset) {
                     e.preventDefault();
                     resetPrompterToStart();
-                } else if (key === state.bindings.exit) {
+                } else if (key === state.bindings.exit || valueKey === state.bindings.exit) {
                     e.preventDefault();
                     exitPrompter();
                 }
@@ -553,50 +634,41 @@
 
         // Launch & Style calculations for Prompter Mode Viewport
         function launchPrompter() {
-            // Apply visual setups dynamically to viewport components
             const viewport = document.getElementById('prompter-viewport');
             const transformLayer = document.getElementById('prompter-transform-layer');
             const content = document.getElementById('prompter-content');
             const guide = document.getElementById('prompter-focus-guide');
 
-            // BG Hex Color conversion to support specific opacity levels
             const rVal = parseInt(state.bgColor.slice(1, 3), 16);
             const gVal = parseInt(state.bgColor.slice(3, 5), 16);
             const bVal = parseInt(state.bgColor.slice(5, 7), 16);
             viewport.style.backgroundColor = `rgba(${rVal}, ${gVal}, ${bVal}, ${state.bgOpacity / 100})`;
 
-            // Typography configurations
             content.style.fontSize = `${state.textSize}px`;
             content.style.color = state.textColor;
             content.style.lineHeight = "1.5";
             
-            // Mirror scale transform modifiers
             let scaleX = state.flipHorizontal ? -1 : 1;
             let scaleY = state.flipVertical ? -1 : 1;
             transformLayer.style.transform = `scale(${scaleX}, ${scaleY})`;
 
-            // Text layout side indents
             content.style.paddingLeft = `${state.indent}%`;
             content.style.paddingRight = `${state.indent}%`;
 
-            // Dynamic Script loader
             content.innerText = state.text;
 
-            // Set dynamic values on local scroll registers
             state.scrollPosition = 0;
-            state.currentSpeed = 0; // Starts stopped
+            state.currentSpeed = 0; 
             state.isScrolling = false;
             updateHudDisplay();
 
             const scrollFrame = document.getElementById('prompter-scroll-frame');
             scrollFrame.scrollTop = 0;
 
-            // Focus Line placement configurations
             if (state.focusBarEnabled) {
                 guide.classList.remove('hidden');
                 guide.style.top = `${state.focusOffset}vh`;
                 
-                // Subtracting half the bar height dynamic positioning to assure optical center tracking alignment
                 guide.style.height = `${state.focusBarHeight}px`;
                 guide.style.marginTop = `${-(state.focusBarHeight / 2)}px`;
                 
@@ -609,11 +681,9 @@
                 guide.classList.add('hidden');
             }
 
-            // Launch Screen
             viewport.classList.remove('hidden');
             document.body.classList.add('overflow-hidden');
 
-            // Begin rendering engine frame ticks
             lastTimestamp = performance.now();
             animationFrameId = requestAnimationFrame(scrollingEngineTick);
         }
@@ -628,17 +698,13 @@
         // Kinetic scrolling paint tick loop handler using requestAnimationFrame
         function scrollingEngineTick(timestamp) {
             const scrollFrame = document.getElementById('prompter-scroll-frame');
-            const delta = (timestamp - lastTimestamp) / 1000; // time offset
+            const delta = (timestamp - lastTimestamp) / 1000; 
             lastTimestamp = timestamp;
 
             if (state.isScrolling && state.currentSpeed !== 0) {
-                // Calculate dynamic pixel step offset per second 
-                // Scale factor converts raw speed levels to pixel distances
                 const step = state.currentSpeed * 25 * delta;
-                
                 state.scrollPosition += step;
 
-                // Set upper and lower bounds check
                 const maxScrollLimit = scrollFrame.scrollHeight - scrollFrame.clientHeight;
                 if (state.scrollPosition > maxScrollLimit) {
                     state.scrollPosition = maxScrollLimit;
@@ -658,19 +724,15 @@
             animationFrameId = requestAnimationFrame(scrollingEngineTick);
         }
 
-        // Toggle state for starting/stopping
         function toggleScrollPlay() {
             state.isScrolling = !state.isScrolling;
             if (state.isScrolling && state.currentSpeed === 0) {
-                // Instantly pick up the default configured speed target
                 state.currentSpeed = state.startSpeed;
             }
             updateHudDisplay();
         }
 
-        // Adjust scroll speeds on user action
         function adjustPrompterSpeed(amount) {
-            // Speed controls also trigger continuous scrolling behaviors automatically
             if (!state.isScrolling) {
                 state.isScrolling = true;
             }
@@ -678,7 +740,6 @@
             updateHudDisplay();
         }
 
-        // Instantly snap scroll frame position back to head 
         function resetPrompterToStart() {
             state.scrollPosition = 0;
             const scrollFrame = document.getElementById('prompter-scroll-frame');
@@ -688,12 +749,10 @@
             updateHudDisplay();
         }
 
-        // Print active settings variables directly upon screen hud
         function updateHudDisplay() {
             const hudVal = document.getElementById('hud-speed-val');
             hudVal.innerText = state.isScrolling ? state.currentSpeed.toFixed(1) : "PAUSED (" + state.currentSpeed.toFixed(1) + ")";
             
-            // Highlight text if moving backwards
             if (state.currentSpeed < 0) {
                 hudVal.classList.remove('text-blue-400');
                 hudVal.classList.add('text-amber-400');
@@ -721,7 +780,6 @@
                     filename = filename.replace(/\.[^/.]+$/, "") + ".rtf";
                 }
                 
-                // Simple standardized RTF structural header builder
                 const escapedText = textToSave
                     .replace(/\\/g, "\\\\")
                     .replace(/{/g, "\\{")
@@ -731,7 +789,6 @@
                 outputContent = `{\\rtf1\\ansi\\ansicpg1252\\deff0\\nouicompat{\\fonttbl{\\f0\\fnil\\fcharset0 Arial;}}\n{\\*\\generator TeleprompterPro;}\\viewkind4\\uc1\n\\pard\\f0\\fs28 ${escapedText}\\par\n}`;
             }
 
-            // Client download generator hook
             const blob = new Blob([outputContent], { type: mimeType });
             const tempLink = document.createElement("a");
             tempLink.download = filename;
@@ -764,17 +821,13 @@
             reader.readAsText(file);
         }
 
-        // Basic helper Regex parser to strip presentation text out of RTF envelopes
         function stripRawRTF(rtfStr) {
             let clean = rtfStr;
-            // 1. Strip out headers & controls matching standard RTF constructs
             clean = clean.replace(/\\rtf1[\s\S]*?\\viewkind4\\uc1[\s\S]*?\\pard/g, "");
             clean = clean.replace(/\\[a-z0-9\-]+(\s|;)?/g, " ");
             clean = clean.replace(/\{[^\{\}]*\}/g, "");
             clean = clean.replace(/\}/g, "");
             clean = clean.replace(/\{/g, "");
-            
-            // Clean consecutive blank spacings lines
             clean = clean.trim();
             return clean;
         }
