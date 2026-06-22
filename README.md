@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Professional Web Teleprompter V3</title>
+    <title>Professional Web Teleprompter</title>
     <!-- Tailwind CSS for rich dashboard styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome for dashboard icons -->
@@ -296,4 +296,626 @@
                 <span class="text-slate-300" id="hud-controls-display">Keys</span>
             </div>
             <div class="h-4 w-[1px] bg-slate-700"></div>
-            <
+            <button onclick="exitPrompter()" class="text-rose-455 hover:text-rose-400 font-bold flex items-center gap-1 transition">
+                <i class="fa-solid fa-rectangle-xmark"></i> Close (Esc)
+            </button>
+        </div>
+    </div>
+
+
+    <!-- DEDICATED KEY CAPTURE OVERLAY (BLOCKED RACE CONDITION SANDBOX) -->
+    <div id="binding-modal-overlay" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300 backdrop-blur-md">
+        <!-- Target hidden text entry inside capture overlay allows mobile OS virtual keyboards to deploy safely -->
+        <input type="text" id="hidden-key-binder" class="absolute opacity-0 pointer-events-none w-px h-px shadow-none border-none outline-none" autocomplete="off">
+        
+        <div class="bg-slate-850 border border-slate-700 max-w-lg w-full rounded-2xl p-8 shadow-2xl relative text-center">
+            <!-- Loading Pulsing target indicator -->
+            <div class="w-20 h-20 bg-blue-600/20 border-2 border-dashed border-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-400 text-3xl animate-spin" style="animation-duration: 4s;">
+                <i class="fa-solid fa-arrows-to-dot"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-1"><span id="capture-action-name-label" class="text-blue-450 uppercase">ACTION</span></h3>
+            <p class="text-md font-semibold text-slate-300 mb-6">Press any button on your Presenter Remote or Keyboard</p>
+            
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl text-xs text-slate-400 font-sans leading-relaxed text-left space-y-1 mb-6">
+                <strong>How to map standard remotes:</strong>
+                <p>• Press the <strong>[Next / PageDown]</strong> button to configure speed ups.</p>
+                <p>• Press the <strong>[Prev / PageUp]</strong> button to configure slow downs.</p>
+                <p>• Click the <strong>Cancel</strong> button below if you want to abort.</p>
+            </div>
+
+            <!-- Manual Cancel element acts to instantly teardown active targeting loops -->
+            <button onclick="closeCaptureModal()" class="w-full sm:w-auto bg-slate-705 hover:bg-slate-600 border border-slate-600/60 text-slate-205 text-sm font-bold px-6 py-2.5 rounded-xl transition">
+                Cancel Mapping
+            </button>
+        </div>
+    </div>
+
+
+    <!-- System Interactive Toast Message Dialog and Modals -->
+    <div id="cloud-dialog" class="fixed inset-0 bg-black/75 z-55 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-slate-800 border border-slate-700 max-w-md w-full rounded-2xl p-6 shadow-2xl relative">
+            <button onclick="closeCloudDialog()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div id="cloud-dialog-icon" class="text-4xl text-blue-500 mb-4 text-center"></div>
+            <h3 id="cloud-dialog-title" class="text-xl font-bold text-white text-center mb-2">Cloud File Integration</h3>
+            <p id="cloud-dialog-body" class="text-sm text-slate-350 leading-relaxed mb-6 text-center"></p>
+            <div class="flex justify-center flex-wrap gap-2">
+                <button onclick="document.getElementById('native-file-loader').click(); closeCloudDialog();" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-lg transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-file-lines"></i> Browse Synced Local Folder
+                </button>
+                <button onclick="closeCloudDialog()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-bold px-4 py-2.5 rounded-lg transition">
+                    Close Details
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- JAVASCRIPT LOGIC CONTROLLING CONFIGS, SCROLL ENGINE, & FILE EXPORTS -->
+    <script>
+        // Default standard presentation keyboard layouts
+        const defaultBindings = {
+            speedUp: "ArrowUp",
+            speedDown: "ArrowDown",
+            toggle: " ", // Space bar representation
+            reset: "KeyR",
+            exit: "Escape"
+        };
+
+        const state = {
+            text: "Welcome to Professional Web Teleprompter!\n\nThis application is a complete presentation engine that runs entirely within your browser.\n\nYou can configure display variables instantly on the setup dashboard:\n- Use Horizontal flip or vertical mirroring if writing scripts into beams using optical beamsplitter glass.\n- Set margins or side indents down to lock text lines directly in the center to reduce reader visual movement tracker fatigue.\n- Personalize spacing configurations, focus guideline tracking systems, background transparencies and customizable default keybindings.\n\nTo begin running the scrolling script, click 'Start Prompting' at top right or simply strike your designated Start/Stop toggle (by default, Spacebar).\n\nYou can map scroll speed actions dynamically to speed up (default Up Arrow) or speed down (default Down Arrow). Scrolling below speed 0 smoothly transitions the rendering flow into inverse backward motion to assist rapid backtracks!\n\nExport your script files into TXT formatted files, or standard RTF documents anytime. Import documents dynamically using the input interface.\n\nNow, edit this display layout, configure text sizes, trigger the play mode, look directly into the camera lens, and deliver a clean presentation!",
+            fileName: "teleprompter-script.txt",
+            flipHorizontal: false,
+            flipVertical: false,
+            textSize: 44,
+            textColor: "#ffffff",
+            bgColor: "#000000",
+            bgOpacity: 100,
+            indent: 14,
+            startSpeed: 4,
+            currentSpeed: 0,
+            isScrolling: false,
+            scrollPosition: 0,
+            focusBarEnabled: true,
+            focusBarHeight: 90,
+            focusOffset: 35,
+            focusBarColor: "#10b981", 
+            focusBarOpacity: 25,
+            bindings: { ...defaultBindings }
+        };
+
+        // Variable capture states for registering custom keybindings
+        let captureTarget = null;
+        let animationFrameId = null;
+        let lastTimestamp = 0;
+
+        // On document initialization
+        window.addEventListener('load', () => {
+            loadFromLocalStorage();
+            initializeUIValues();
+            applyInteractiveHighlights();
+        });
+
+        // Local Storage persistent handlers
+        function saveToLocalStorage() {
+            localStorage.setItem('tp_state', JSON.stringify({
+                text: state.text,
+                fileName: state.fileName,
+                flipHorizontal: state.flipHorizontal,
+                flipVertical: state.flipVertical,
+                textSize: state.textSize,
+                textColor: state.textColor,
+                bgColor: state.bgColor,
+                bgOpacity: state.bgOpacity,
+                indent: state.indent,
+                startSpeed: state.startSpeed,
+                focusBarEnabled: state.focusBarEnabled,
+                focusBarHeight: state.focusBarHeight,
+                focusOffset: state.focusOffset,
+                focusBarColor: state.focusBarColor,
+                focusBarOpacity: state.focusBarOpacity,
+                bindings: state.bindings
+            }));
+        }
+
+        function loadFromLocalStorage() {
+            const raw = localStorage.getItem('tp_state');
+            if (raw) {
+                try {
+                    const parsed = JSON.parse(raw);
+                    if (!parsed.bindings) parsed.bindings = { ...defaultBindings };
+                    Object.assign(state, parsed);
+                } catch (e) {
+                    console.error("Local storage sync error", e);
+                }
+            }
+        }
+
+        // Initialize form elements with variables
+        function initializeUIValues() {
+            document.getElementById('main-script-editor').value = state.text;
+            document.getElementById('input-file-name').value = state.fileName;
+            
+            document.getElementById('input-text-size').value = state.textSize;
+            document.getElementById('label-text-size').innerText = state.textSize + 'px';
+            
+            document.getElementById('input-indent').value = state.indent;
+            document.getElementById('label-indent').innerText = state.indent + '%';
+            
+            document.getElementById('input-text-color').value = state.textColor;
+            document.getElementById('input-bg-color').value = state.bgColor;
+            document.getElementById('input-bg-opacity').value = state.bgOpacity;
+            
+            document.getElementById('input-start-speed').value = state.startSpeed;
+            document.getElementById('label-start-speed').innerText = state.startSpeed;
+            
+            document.getElementById('input-focus-enabled').checked = state.focusBarEnabled;
+            document.getElementById('input-focus-height').value = state.focusBarHeight;
+            document.getElementById('label-focus-height').innerText = state.focusBarHeight + 'px';
+            
+            document.getElementById('input-focus-offset').value = state.focusOffset;
+            document.getElementById('label-focus-offset').innerText = state.focusOffset + '%';
+            
+            document.getElementById('input-focus-color').value = state.focusBarColor;
+            document.getElementById('input-focus-opacity').value = state.focusBarOpacity;
+
+            configureFocusBarSubElements();
+            updateBindingsUI();
+        }
+
+        // Dynamic element value sync setters
+        function updateSetting(key, val) {
+            if (key === 'focusBarEnabled') {
+                state[key] = Boolean(val);
+                configureFocusBarSubElements();
+            } else if (key === 'bgOpacity' || key === 'focusBarOpacity') {
+                state[key] = Math.max(0, Math.min(100, parseInt(val) || 0));
+            } else if (key === 'textSize' || key === 'indent' || key === 'startSpeed' || key === 'focusBarHeight' || key === 'focusOffset') {
+                state[key] = parseInt(val);
+            } else {
+                state[key] = val;
+            }
+
+            if (key === 'textSize') document.getElementById('label-text-size').innerText = val + 'px';
+            if (key === 'indent') document.getElementById('label-indent').innerText = val + '%';
+            if (key === 'startSpeed') document.getElementById('label-start-speed').innerText = val;
+            if (key === 'focusBarHeight') document.getElementById('label-focus-height').innerText = val + 'px';
+            if (key === 'focusOffset') document.getElementById('label-focus-offset').innerText = val + '%';
+
+            saveToLocalStorage();
+            applyInteractiveHighlights();
+        }
+
+        function toggleSetting(key) {
+            state[key] = !state[key];
+            saveToLocalStorage();
+            applyInteractiveHighlights();
+        }
+
+        function updateScriptText(txt) {
+            state.text = txt;
+            saveToLocalStorage();
+        }
+
+        function configureFocusBarSubElements() {
+            const pane = document.getElementById('focus-bar-controls-container');
+            if (state.focusBarEnabled) {
+                pane.classList.remove('opacity-40', 'pointer-events-none');
+            } else {
+                pane.classList.add('opacity-40', 'pointer-events-none');
+            }
+        }
+
+        function applyInteractiveHighlights() {
+            const hBtn = document.getElementById('btn-mirror-horiz');
+            if (state.flipHorizontal) {
+                hBtn.classList.add('bg-blue-600/20', 'border-blue-500', 'text-blue-400 font-bold');
+            } else {
+                hBtn.classList.remove('bg-blue-600/20', 'border-blue-500', 'text-blue-400 font-bold');
+            }
+            
+            const vBtn = document.getElementById('btn-mirror-vert');
+            if (state.flipVertical) {
+                vBtn.classList.add('bg-blue-600/20', 'border-blue-500', 'text-blue-400 font-bold');
+            } else {
+                vBtn.classList.remove('bg-blue-600/20', 'border-blue-500', 'text-blue-400 font-bold');
+            }
+        }
+
+        function updateBindingsUI() {
+            for (const [bindingName, keyString] of Object.entries(state.bindings)) {
+                const btn = document.getElementById(`bind-${bindingName}`);
+                if (btn) {
+                    btn.innerText = getFriendlyName(keyString);
+                }
+            }
+        }
+
+        function getFriendlyName(keyString) {
+            if (keyString === " ") return "Space";
+            return keyString;
+        }
+
+        function resetDefaultKeybindings() {
+            state.bindings = { ...defaultBindings };
+            saveToLocalStorage();
+            updateBindingsUI();
+        }
+
+        // Bluetooth Presenter Clicker Custom Preset Autoconfigurator mapping
+        function applyPresenterPresets() {
+            state.bindings.speedUp = "PageDown";
+            state.bindings.speedDown = "PageUp";
+            state.bindings.toggle = "Escape"; // Mapped typically to standard clicker "Black out / Enter Show" command buttons
+            state.bindings.reset = "KeyR";
+            state.bindings.exit = "KeyQ";
+            saveToLocalStorage();
+            updateBindingsUI();
+        }
+
+        // BINDING SELECTION CONTROL CONSOLE FUNCTIONS (SANDBOX MODAL DETECTORS)
+        function openCaptureModal(bindingName) {
+            // Re-assert target
+            captureTarget = bindingName;
+
+            // Set dynamic header text in modal box
+            let friendlyAction = "Accelerate";
+            if (bindingName === "speedDown") friendlyAction = "Decelerate / Reverse";
+            if (bindingName === "toggle") friendlyAction = "Play / Pause Toggle";
+            if (bindingName === "reset") friendlyAction = "Reset to start";
+            if (bindingName === "exit") friendlyAction = "Exit Prompt Mode";
+
+            document.getElementById('capture-action-name-label').innerText = `Configuring: ${friendlyAction}`;
+
+            // Reveal key bindings overlay box
+            const overlay = document.getElementById('binding-modal-overlay');
+            overlay.classList.remove('opacity-0', 'pointer-events-none');
+
+            // Set instant programmatic cursor focus to capture mobile keyboards
+            const forceField = document.getElementById('hidden-key-binder');
+            forceField.value = "";
+            forceField.focus();
+        }
+
+        function closeCaptureModal() {
+            const overlay = document.getElementById('binding-modal-overlay');
+            overlay.classList.add('opacity-0', 'pointer-events-none');
+            
+            // Clean dynamic target pointer structures
+            captureTarget = null;
+            document.getElementById('hidden-key-binder').blur();
+        }
+
+        // Core Key Capturing compiler (Processes precise Bluetooth presenter parameters)
+        function registerKeystrokeInsideModal(eventCode, eventKey, eventKeyCode) {
+            if (!captureTarget) return;
+
+            // Priority logic for captures:
+            // 1. Attempt standard event.code (Isolates from specific language keyboards)
+            // 2. Fallback index key literal properties
+            // 3. Fallback standard generic absolute KeyCodes (e.g., custom controller clickers)
+            let capturedData = eventCode || eventKey;
+            
+            if (eventKey === " " || eventCode === "Space") {
+                capturedData = " ";
+            } else if (eventKey === "PageUp" || eventCode === "PageUp") {
+                capturedData = "PageUp";
+            } else if (eventKey === "PageDown" || eventCode === "PageDown") {
+                capturedData = "PageDown";
+            } else if (!capturedData) {
+                capturedData = "RawCode" + eventKeyCode;
+            }
+
+            state.bindings[captureTarget] = capturedData;
+            
+            saveToLocalStorage();
+            updateBindingsUI();
+            closeCaptureModal();
+        }
+
+        // Event listener capture mapping intercepting hidden configurations
+        document.getElementById('hidden-key-binder').addEventListener('keydown', (e) => {
+            if (captureTarget) {
+                e.preventDefault();
+                e.stopPropagation();
+                registerKeystrokeInsideModal(e.code, e.key, e.keyCode);
+            }
+        });
+
+
+        // SINGLE GLOBAL WINDOW DELEGATE CAPTURES INCOMING SIGNAL EVENTS
+        window.addEventListener('keydown', (e) => {
+            const isPrompterActive = !document.getElementById('prompter-viewport').classList.contains('hidden');
+
+            // Case A: Capturing key binding modifications on modal layout
+            if (captureTarget) {
+                e.preventDefault();
+                e.stopPropagation();
+                registerKeystrokeInsideModal(e.code, e.key, e.keyCode);
+                return;
+            }
+
+            // Case B: Full screen teleprompter mode actively running
+            if (isPrompterActive) {
+                // IMPORTANT: Prevent default browser controls (PageUp, PageDown, or arrows) 
+                // from causing jumps inside our prompter
+                if (e.key !== 'Escape' && e.code !== 'Escape') {
+                    e.preventDefault();
+                }
+
+                const searchCode = e.code;
+                const searchKey = e.key;
+                const searchKeyCode = e.keyCode;
+
+                if (matchesInputBind('toggle', searchCode, searchKey, searchKeyCode)) {
+                    toggleScrollPlay();
+                } else if (matchesInputBind('speedUp', searchCode, searchKey, searchKeyCode)) {
+                    adjustPrompterSpeed(0.5);
+                } else if (matchesInputBind('speedDown', searchCode, searchKey, searchKeyCode)) {
+                    adjustPrompterSpeed(-0.5);
+                } else if (matchesInputBind('reset', searchCode, searchKey, searchKeyCode)) {
+                    resetPrompterToStart();
+                } else if (matchesInputBind('exit', searchCode, searchKey, searchKeyCode)) {
+                    exitPrompter();
+                }
+            }
+        }, { passive: false });
+
+
+        // Evaluator matcher handles complex custom bluetooth signals
+        function matchesInputBind(actionName, eventCode, eventKey, eventKeyCode) {
+            const savedValue = state.bindings[actionName];
+            if (!savedValue) return false;
+
+            if (savedValue === " ") {
+                return (eventCode === "Space" || eventKey === " ");
+            }
+
+            // Test standard strings patterns, key overrides, or custom Raw key integers
+            return (
+                eventCode === savedValue || 
+                eventKey === savedValue || 
+                ("RawCode" + eventKeyCode) === savedValue
+            );
+        }
+
+
+        // Teleprompter Engine Launch Layouts
+        function launchPrompter() {
+            const viewport = document.getElementById('prompter-viewport');
+            const transformLayer = document.getElementById('prompter-transform-layer');
+            const content = document.getElementById('prompter-content');
+            const guide = document.getElementById('prompter-focus-guide');
+
+            const rVal = parseInt(state.bgColor.slice(1, 3), 16);
+            const gVal = parseInt(state.bgColor.slice(3, 5), 16);
+            const bVal = parseInt(state.bgColor.slice(5, 7), 16);
+            viewport.style.backgroundColor = `rgba(${rVal}, ${gVal}, ${bVal}, ${state.bgOpacity / 100})`;
+
+            content.style.fontSize = `${state.textSize}px`;
+            content.style.color = state.textColor;
+            content.style.lineHeight = "1.5";
+            
+            let scaleX = state.flipHorizontal ? -1 : 1;
+            let scaleY = state.flipVertical ? -1 : 1;
+            transformLayer.style.transform = `scale(${scaleX}, ${scaleY})`;
+
+            content.style.paddingLeft = `${state.indent}%`;
+            content.style.paddingRight = `${state.indent}%`;
+
+            content.innerText = state.text;
+
+            state.scrollPosition = 0;
+            state.currentSpeed = 0; 
+            state.isScrolling = false;
+            updateHudDisplay();
+
+            const scrollFrame = document.getElementById('prompter-scroll-frame');
+            scrollFrame.scrollTop = 0;
+
+            if (state.focusBarEnabled) {
+                guide.classList.remove('hidden');
+                guide.style.top = `${state.focusOffset}vh`;
+                
+                guide.style.height = `${state.focusBarHeight}px`;
+                guide.style.marginTop = `${-(state.focusBarHeight / 2)}px`;
+                
+                const fR = parseInt(state.focusBarColor.slice(1,3), 16);
+                const fG = parseInt(state.focusBarColor.slice(3,5), 16);
+                const fB = parseInt(state.focusBarColor.slice(5,7), 16);
+                guide.style.backgroundColor = `rgba(${fR}, ${fG}, ${fB}, ${state.focusBarOpacity / 100})`;
+                guide.style.borderColor = `rgba(${fR}, ${fG}, ${fB}, ${(state.focusBarOpacity + 20) / 100})`;
+            } else {
+                guide.classList.add('hidden');
+            }
+
+            document.getElementById('hud-controls-display').innerHTML = `
+                <span class="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-bold">${getFriendlyName(state.bindings.speedUp)}</span> + | 
+                <span class="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-bold">${getFriendlyName(state.bindings.speedDown)}</span> - | 
+                <span class="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-bold">${getFriendlyName(state.bindings.toggle)}</span> Pause
+            `;
+
+            viewport.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+
+            lastTimestamp = performance.now();
+            animationFrameId = requestAnimationFrame(scrollingEngineTick);
+        }
+
+        function exitPrompter() {
+            cancelAnimationFrame(animationFrameId);
+            document.getElementById('prompter-viewport').classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+            state.isScrolling = false;
+        }
+
+        // Scroll engine handling programmatic canvas shift values
+        function scrollingEngineTick(timestamp) {
+            const scrollFrame = document.getElementById('prompter-scroll-frame');
+            const delta = (timestamp - lastTimestamp) / 1000; 
+            lastTimestamp = timestamp;
+
+            if (state.isScrolling && state.currentSpeed !== 0) {
+                const step = state.currentSpeed * 25 * delta;
+                state.scrollPosition += step;
+
+                const maxScrollLimit = scrollFrame.scrollHeight - scrollFrame.clientHeight;
+                if (state.scrollPosition > maxScrollLimit) {
+                    state.scrollPosition = maxScrollLimit;
+                    state.isScrolling = false;
+                    state.currentSpeed = 0;
+                    updateHudDisplay();
+                } else if (state.scrollPosition < 0) {
+                    state.scrollPosition = 0;
+                    state.isScrolling = false;
+                    state.currentSpeed = 0;
+                    updateHudDisplay();
+                }
+
+                scrollFrame.scrollTop = state.scrollPosition;
+            }
+
+            animationFrameId = requestAnimationFrame(scrollingEngineTick);
+        }
+
+        function toggleScrollPlay() {
+            state.isScrolling = !state.isScrolling;
+            if (state.isScrolling && state.currentSpeed === 0) {
+                state.currentSpeed = state.startSpeed;
+            }
+            updateHudDisplay();
+        }
+
+        function adjustPrompterSpeed(amount) {
+            if (!state.isScrolling) {
+                state.isScrolling = true;
+            }
+            state.currentSpeed = parseFloat((state.currentSpeed + amount).toFixed(1));
+            updateHudDisplay();
+        }
+
+        function resetPrompterToStart() {
+            state.scrollPosition = 0;
+            const scrollFrame = document.getElementById('prompter-scroll-frame');
+            scrollFrame.scrollTop = 0;
+            state.isScrolling = false;
+            state.currentSpeed = 0;
+            updateHudDisplay();
+        }
+
+        function updateHudDisplay() {
+            const hudVal = document.getElementById('hud-speed-val');
+            hudVal.innerText = state.isScrolling ? state.currentSpeed.toFixed(1) : "PAUSED (" + state.currentSpeed.toFixed(1) + ")";
+            
+            if (state.currentSpeed < 0) {
+                hudVal.classList.remove('text-blue-400');
+                hudVal.classList.add('text-amber-400');
+            } else {
+                hudVal.classList.remove('text-amber-400');
+                hudVal.classList.add('text-blue-400');
+            }
+        }
+
+        // FILE EXPORT UTILITY HANDLERS
+        function exportScriptText(format) {
+            const textToSave = state.text;
+            let mimeType = "text/plain";
+            let filename = state.fileName;
+            let outputContent = "";
+
+            if (format === 'txt') {
+                outputContent = textToSave;
+                if (!filename.endsWith('.txt')) {
+                    filename = filename.replace(/\.[^/.]+$/, "") + ".txt";
+                }
+            } else if (format === 'rtf') {
+                mimeType = "application/rtf";
+                if (!filename.endsWith('.rtf')) {
+                    filename = filename.replace(/\.[^/.]+$/, "") + ".rtf";
+                }
+                
+                const escapedText = textToSave
+                    .replace(/\\/g, "\\\\")
+                    .replace(/{/g, "\\{")
+                    .replace(/}/g, "\\}")
+                    .replace(/\n/g, "\\par\n");
+
+                outputContent = `{\\rtf1\\ansi\\ansicpg1252\\deff0\\nouicompat{\\fonttbl{\\f0\\fnil\\fcharset0 Arial;}}\n{\\*\\generator TeleprompterPro;}\\viewkind4\\uc1\n\\pard\\f0\\fs28 ${escapedText}\\par\n}`;
+            }
+
+            const blob = new Blob([outputContent], { type: mimeType });
+            const tempLink = document.createElement("a");
+            tempLink.download = filename;
+            tempLink.href = window.URL.createObjectURL(blob);
+            tempLink.click();
+            window.URL.revokeObjectURL(tempLink.href);
+        }
+
+        // LOCAL FILE IMPORT HANDLER
+        function importLocalSystemFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            state.fileName = file.name;
+            document.getElementById('input-file-name').value = file.name;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                let content = e.target.result;
+                
+                if (file.name.endsWith('.rtf')) {
+                    content = stripRawRTF(content);
+                }
+                
+                state.text = content;
+                document.getElementById('main-script-editor').value = content;
+                saveToLocalStorage();
+            };
+            
+            reader.readAsText(file);
+        }
+
+        function stripRawRTF(rtfStr) {
+            let clean = rtfStr;
+            clean = clean.replace(/\\rtf1[\s\S]*?\\viewkind4\\uc1[\s\S]*?\\pard/g, "");
+            clean = clean.replace(/\\[a-z0-9\-]+(\s|;)?/g, " ");
+            clean = clean.replace(/\{[^\{\}]*\}/g, "");
+            clean = clean.replace(/\}/g, "");
+            clean = clean.replace(/\{/g, "");
+            clean = clean.trim();
+            return clean;
+        }
+
+        // Cloud Drive Dialog simulator explaining synchronization integration setup
+        function cloudIntegratorDialog(serviceName) {
+            const dialog = document.getElementById('cloud-dialog');
+            const iconWrap = document.getElementById('cloud-dialog-icon');
+            const title = document.getElementById('cloud-dialog-title');
+            const body = document.getElementById('cloud-dialog-body');
+
+            title.innerText = `${serviceName} Integration`;
+
+            if (serviceName === "Google Drive") {
+                iconWrap.innerHTML = `<i class="fa-brands fa-google-drive"></i>`;
+                body.innerHTML = `To read directly from <strong>Google Drive</strong>, we highly recommend synced folders:<br><br>
+                1. Save file directly inside your Google Drive Sync Folder locally on your Desktop.<br>
+                2. Select <strong>Import File</strong> locally to browse.<br>
+                3. Your changes sync to the cloud automatically when you edit or save directly using this interface!`;
+            } else {
+                iconWrap.innerHTML = `<i class="fa-brands fa-windows text-sky-400"></i>`;
+                body.innerHTML = `To read directly from <strong>Microsoft OneDrive</strong> sync:<br><br>
+                1. Simply save text formatting files directly in OneDrive folders.<br>
+                2. Tap import, browse OneDrive's mounting directories.<br>
+                3. Saving your export downloads will automatically upload updates into active MS files!`;
+            }
+
+            dialog.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function closeCloudDialog() {
+            document.getElementById('cloud-dialog').classList.add('opacity-0', 'pointer-events-none');
+        }
+    </script>
+</body>
+</html>
