@@ -28,7 +28,7 @@
 <body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col transition-all duration-300">
 
     <!-- HIDDEN INPUT TO FORCE VIRTUAL KEYBOARD POPULATION ON MOBILE -->
-    <input type="text" id="hidden-key-binder" class="absolute opacity-0 pointer-events-none w-px h-px" aria-hidden="true" autocomplete="off">
+    <input type="text" id="hidden-key-binder" class="absolute opacity-0 pointer-events-none w-px h-px shadow-none border-none outline-none" aria-hidden="true" autocomplete="off text">
 
     <!-- SETUP VIEW -->
     <div id="setup-view" class="container mx-auto px-4 py-8 flex-grow max-w-7xl">
@@ -44,7 +44,7 @@
                 </div>
             </div>
             
-            <button onclick="launchPrompter()" class="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/35 transition-all flex items-center justify-center gap-3 transform hover:-translate-y-0.5 active:translate-y-0">
+            <button onclick="launchPrompter()" class="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/35 transition-all flex items-center justify-center gap-3 transform hover:-translate-y-0.5 active:translate-y-0 animate-pulse">
                 <i class="fa-solid fa-play"></i> Start Prompting (Ref/Space)
             </button>
         </header>
@@ -174,43 +174,35 @@
                             <input type="range" id="input-start-speed" min="-10" max="25" value="4" oninput="updateSetting('startSpeed', this.value)" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-violet-500">
                         </div>
 
-                        <!-- BLUETOOTH PRESENTER REMOTE SWITCH -->
-                        <div class="bg-violet-950/40 border border-violet-500/30 rounded-xl p-4 flex items-center justify-between">
-                            <div>
-                                <h3 class="text-sm font-bold text-violet-300 flex items-center gap-2">
-                                    <i class="fa-solid fa-toggle-on text-emerald-400"></i> Bluetooth Presenter Clicker Mode
-                                </h3>
-                                <p class="text-[11px] text-slate-400 mt-0.5">Binds [PageDown]/[Next] to Speed Up and [PageUp]/[Back] to Slow Down.</p>
-                            </div>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="input-presenter-mode" onchange="updateSetting('presenterMode', this.checked)" class="sr-only peer">
-                                <div class="w-11 h-6 bg-slate-705 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-                            </label>
-                        </div>
-
                         <!-- Keybindings Visual Configurator -->
-                        <div id="keybindings-standard-menu">
-                            <span class="block text-sm font-medium text-slate-400 mb-3">Custom Keyboard Bindings</span>
+                        <div>
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="block text-sm font-medium text-slate-400">Configure Key Bindings</span>
+                                <button onclick="resetDefaultKeybindings()" class="text-xs text-rose-450 hover:text-rose-405 hover:underline font-semibold">Reset to Defaults</button>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mb-3 bg-slate-900/50 p-2.5 rounded-lg border border-slate-700/50">
+                                <strong>Tip:</strong> Tap a button below, then immediately press any key on your keyboard <strong>or your Bluetooth Presenter remote</strong> to map it. We block all browser page moves automatically.
+                            </p>
                             <div class="space-y-2 text-xs">
                                 <div class="flex justify-between items-center py-2 px-3 bg-slate-900/50 rounded-lg border border-slate-700">
-                                    <span class="text-slate-350">Accelerate / Speed Up</span>
-                                    <button class="keybind-btn border border-violet-500/30 px-2.5 py-1 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider hover:bg-violet-900/40" onclick="captureKey('speedUp')" id="bind-speedUp">ArrowUp</button>
+                                    <span class="text-slate-350 font-medium">Accelerate / Speed Up</span>
+                                    <button class="keybind-btn border border-violet-500/30 px-3 py-1.5 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider hover:bg-violet-900/40 min-w-[100px]" onclick="captureKey('speedUp')" id="bind-speedUp">ArrowUp</button>
                                 </div>
                                 <div class="flex justify-between items-center py-2 px-3 bg-slate-900/50 rounded-lg border border-slate-700">
-                                    <span class="text-slate-350">Decelerate / Reverse</span>
-                                    <button class="keybind-btn border border-violet-500/30 px-2.5 py-1 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider hover:bg-violet-900/40" onclick="captureKey('speedDown')" id="bind-speedDown">ArrowDown</button>
+                                    <span class="text-slate-350 font-medium">Decelerate / Reverse</span>
+                                    <button class="keybind-btn border border-violet-500/30 px-3 py-1.5 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider hover:bg-violet-900/40 min-w-[100px]" onclick="captureKey('speedDown')" id="bind-speedDown">ArrowDown</button>
                                 </div>
                                 <div class="flex justify-between items-center py-2 px-3 bg-slate-900/50 rounded-lg border border-slate-700">
-                                    <span class="text-slate-350">Start / Stop Toggle</span>
-                                    <button class="keybind-btn border border-violet-500/30 px-2.5 py-1 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider hover:bg-violet-900/40" onclick="captureKey('toggle')" id="bind-toggle">Space</button>
+                                    <span class="text-slate-350 font-medium">Start / Stop Toggle</span>
+                                    <button class="keybind-btn border border-violet-500/30 px-3 py-1.5 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider hover:bg-violet-900/40 min-w-[100px]" onclick="captureKey('toggle')" id="bind-toggle">Space</button>
                                 </div>
                                 <div class="flex justify-between items-center py-2 px-3 bg-slate-900/50 rounded-lg border border-slate-700">
-                                    <span class="text-slate-350">Reset to Head</span>
-                                    <button class="keybind-btn border border-violet-500/30 px-2.5 py-1 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider hover:bg-violet-900/40" onclick="captureKey('reset')" id="bind-reset">KeyR</button>
+                                    <span class="text-slate-350 font-medium">Reset to Head</span>
+                                    <button class="keybind-btn border border-violet-500/30 px-3 py-1.5 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider hover:bg-violet-900/40 min-w-[100px]" onclick="captureKey('reset')" id="bind-reset">KeyR</button>
                                 </div>
                                 <div class="flex justify-between items-center py-2 px-3 bg-slate-900/50 rounded-lg border border-slate-700">
-                                    <span class="text-slate-350">Exit Teleprompter Mode</span>
-                                    <button class="keybind-btn border border-violet-500/30 px-2.5 py-1 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider hover:bg-violet-900/40" onclick="captureKey('exit')" id="bind-exit">Escape</button>
+                                    <span class="text-slate-350 font-medium">Exit Teleprompter Mode</span>
+                                    <button class="keybind-btn border border-violet-500/30 px-3 py-1.5 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider hover:bg-violet-900/40 min-w-[100px]" onclick="captureKey('exit')" id="bind-exit">Escape</button>
                                 </div>
                             </div>
                         </div>
@@ -276,12 +268,13 @@
 
 
     <!-- FULL SCREEN TELEPROMPTER ACTIVE VIEWPORT -->
+    <!-- overflow is styled as hidden dynamically to lock out any manual page jumping -->
     <div id="prompter-viewport" class="fixed inset-0 z-50 hidden select-none overflow-hidden cursor-none flex flex-col">
         <!-- Visual guide color-accented helper bar overlay -->
         <div id="prompter-focus-guide" class="absolute left-0 right-0 pointer-events-none z-10 transition-all border-y border-transparent"></div>
 
-        <!-- Scrollable dynamic text content frame -->
-        <div id="prompter-scroll-frame" class="w-full flex-grow overflow-y-scroll overflow-x-hidden focus:outline-none" style="-ms-overflow-style: none; scrollbar-width: none;">
+        <!-- Scrollable content frame is locked from native manual scrolling to strictly prevent presenter jumping -->
+        <div id="prompter-scroll-frame" class="w-full flex-grow overflow-hidden focus:outline-none">
             <!-- Outer wrapper supporting mirror properties scale transforms -->
             <div id="prompter-transform-layer" class="w-full min-h-full flex flex-col origin-center">
                 <!-- Inner element establishing configured side indents -->
@@ -297,10 +290,8 @@
             </div>
             <div class="h-4 w-[1px] bg-slate-700"></div>
             <div class="flex items-center gap-2">
-                <span class="text-slate-400">Control Keys:</span>
-                <span class="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-bold">▲/▼ Adjust</span>
-                <span class="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-bold">Space Pause</span>
-                <span class="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-bold">R Reset</span>
+                <span class="text-slate-400 font-semibold">Active controls: </span>
+                <span class="text-slate-300" id="hud-controls-display">Keys</span>
             </div>
             <div class="h-4 w-[1px] bg-slate-700"></div>
             <button onclick="exitPrompter()" class="text-rose-450 hover:text-rose-400 font-bold flex items-center gap-1 transition">
@@ -334,6 +325,14 @@
     <!-- JAVASCRIPT LOGIC CONTROLLING CONFIGS, SCROLL ENGINE, & FILE EXPORTS -->
     <script>
         // Default state configuration objects
+        const defaultBindings = {
+            speedUp: "ArrowUp",
+            speedDown: "ArrowDown",
+            toggle: " ", // Space bar representation
+            reset: "KeyR",
+            exit: "Escape"
+        };
+
         const state = {
             text: "Welcome to Professional Web Teleprompter!\n\nThis application is a complete presentation engine that runs entirely within your browser.\n\nYou can configure display variables instantly on the setup dashboard:\n- Use Horizontal flip or vertical mirroring if writing scripts into beams using optical beamsplitter glass.\n- Set margins or side indents down to lock text lines directly in the center to reduce reader visual movement tracker fatigue.\n- Personalize spacing configurations, focus guideline tracking systems, background transparencies and customizable default keybindings.\n\nTo begin running the scrolling script, click 'Start Prompting' at top right or simply strike your designated Start/Stop toggle (by default, Spacebar).\n\nYou can map scroll speed actions dynamically to speed up (default Up Arrow) or speed down (default Down Arrow). Scrolling below speed 0 smoothly transitions the rendering flow into inverse backward motion to assist rapid backtracks!\n\nExport your script files into TXT formatted files, or standard RTF documents anytime. Import documents dynamically using the input interface.\n\nNow, edit this display layout, configure text sizes, trigger the play mode, look directly into the camera lens, and deliver a clean presentation!",
             fileName: "teleprompter-script.txt",
@@ -353,14 +352,7 @@
             focusOffset: 35,
             focusBarColor: "#10b981", 
             focusBarOpacity: 25,
-            presenterMode: false,
-            bindings: {
-                speedUp: "ArrowUp",
-                speedDown: "ArrowDown",
-                toggle: " ", // Space bar representation
-                reset: "KeyR",
-                exit: "Escape"
-            }
+            bindings: { ...defaultBindings }
         };
 
         // Variable capture states for registering custom keybindings
@@ -393,7 +385,6 @@
                 focusOffset: state.focusOffset,
                 focusBarColor: state.focusBarColor,
                 focusBarOpacity: state.focusBarOpacity,
-                presenterMode: state.presenterMode,
                 bindings: state.bindings
             }));
         }
@@ -403,6 +394,8 @@
             if (raw) {
                 try {
                     const parsed = JSON.parse(raw);
+                    // Standard recovery safety check for individual bindings
+                    if (!parsed.bindings) parsed.bindings = { ...defaultBindings };
                     Object.assign(state, parsed);
                 } catch (e) {
                     console.error("Local storage sync error", e);
@@ -437,11 +430,8 @@
             
             document.getElementById('input-focus-color').value = state.focusBarColor;
             document.getElementById('input-focus-opacity').value = state.focusBarOpacity;
-            
-            document.getElementById('input-presenter-mode').checked = state.presenterMode;
 
             configureFocusBarSubElements();
-            togglePresenterUILayout();
             updateBindingsUI();
         }
 
@@ -450,9 +440,6 @@
             if (key === 'focusBarEnabled') {
                 state[key] = Boolean(val);
                 configureFocusBarSubElements();
-            } else if (key === 'presenterMode') {
-                state[key] = Boolean(val);
-                togglePresenterUILayout();
             } else if (key === 'bgOpacity' || key === 'focusBarOpacity') {
                 state[key] = Math.max(0, Math.min(100, parseInt(val) || 0));
             } else if (key === 'textSize' || key === 'indent' || key === 'startSpeed' || key === 'focusBarHeight' || key === 'focusOffset') {
@@ -492,15 +479,6 @@
             }
         }
 
-        function togglePresenterUILayout() {
-            const container = document.getElementById('keybindings-standard-menu');
-            if (state.presenterMode) {
-                container.classList.add('opacity-30', 'pointer-events-none');
-            } else {
-                container.classList.remove('opacity-30', 'pointer-events-none');
-            }
-        }
-
         // Highlight custom visual configuration control borders
         function applyInteractiveHighlights() {
             const hBtn = document.getElementById('btn-mirror-horiz');
@@ -518,24 +496,35 @@
             }
         }
 
-        // Custom Key Binding interceptors
+        // Custom Key Binding UI Renderers
         function updateBindingsUI() {
             for (const [bindingName, keyString] of Object.entries(state.bindings)) {
                 const btn = document.getElementById(`bind-${bindingName}`);
                 if (btn) {
-                    btn.innerText = keyString === " " ? "Space" : keyString;
+                    btn.innerText = getFriendlyName(keyString);
                 }
             }
         }
 
-        // Dynamic Capture Key supporting mobile on-screen keyboard trigger
+        function getFriendlyName(keyString) {
+            if (keyString === " ") return "Space";
+            return keyString;
+        }
+
+        function resetDefaultKeybindings() {
+            state.bindings = { ...defaultBindings };
+            saveToLocalStorage();
+            updateBindingsUI();
+        }
+
+        // Dynamic Capture Key supporting mobile on-screen keyboard trigger and Bluetooth Remote Input
         function captureKey(bindingName) {
             captureTarget = bindingName;
             
-            // Adjust visual label states
+            // Adjust visual label states block
             const btn = document.getElementById(`bind-${bindingName}`);
-            btn.innerText = "Press key...";
-            btn.classList.add('bg-rose-950/50', 'text-rose-400', 'border-rose-500/50', 'animate-pulse');
+            btn.innerText = "PRESS KEY...";
+            btn.className = "keybind-btn border-2 border-rose-500 px-3 py-1.5 rounded bg-rose-950/60 text-rose-300 font-black tracking-wider animate-pulse min-w-[100px]";
 
             // Force mobile focus onto hidden element to programmatically prompt physical on-screen virtual keyboard
             const forceInput = document.getElementById('hidden-key-binder');
@@ -543,23 +532,25 @@
             forceInput.focus();
         }
 
-        // On Keyboard selection handler
+        // Handle assignments once a keystroke is received from standard keys or hardware bluetooth presenters
         function handleKeyCapture(pressedCode, pressedKey) {
             if (!captureTarget) return;
 
-            let assigned = pressedCode;
-            if (pressedCode === "Space" || pressedKey === " ") {
-                assigned = " ";
-            } else if (!assigned) {
-                assigned = pressedKey;
+            // Priority: store e.code (e.g. PageDown, ArrowUp, KeyK) because code is immune to local keyboard layout variations.
+            // Fall back to actual key value if code is empty
+            let valueToSave = pressedCode || pressedKey;
+            
+            if (pressedKey === " " || pressedCode === "Space") {
+                valueToSave = " ";
             }
 
-            state.bindings[captureTarget] = assigned;
+            state.bindings[captureTarget] = valueToSave;
 
             const btn = document.getElementById(`bind-${captureTarget}`);
-            btn.classList.remove('bg-rose-950/50', 'text-rose-400', 'border-rose-500/50', 'animate-pulse');
+            // Reset button structure back to active styling classes
+            btn.className = "keybind-btn border border-violet-500/30 px-3 py-1.5 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider hover:bg-violet-900/40 min-w-[100px]";
 
-            // Reset and remove inputs
+            // Reset systems
             captureTarget = null;
             document.getElementById('hidden-key-binder').blur();
             
@@ -576,8 +567,11 @@
             }
         });
 
+        // SINGLE COMPREHENSIVE WINDOW KEYDOWN LISTENER
         window.addEventListener('keydown', (e) => {
-            // Check if key capturing is currently active
+            const isPrompterActive = !document.getElementById('prompter-viewport').classList.contains('hidden');
+
+            // If we are configuring keybind buttons:
             if (captureTarget) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -585,52 +579,43 @@
                 return;
             }
 
-            // Keyboard controller mappings logic when using Teleprompter View Mode
-            const isPrompterActive = !document.getElementById('prompter-viewport').classList.contains('hidden');
+            // If the full visual teleprompter is currently running:
             if (isPrompterActive) {
-                const key = e.code === "Space" ? " " : e.code;
-                const valueKey = e.key;
-
-                // 1. BLUETOOTH PRESENTER OVERRIDE
-                if (state.presenterMode) {
-                    // PageDown is commonly mapped to the "Next" clicker button. PageUp to "Prev" button.
-                    if (valueKey === "PageDown" || key === "PageDown" || key === "ArrowRight") {
-                        e.preventDefault();
-                        adjustPrompterSpeed(0.5);
-                        return;
-                    }
-                    if (valueKey === "PageUp" || key === "PageUp" || key === "ArrowLeft") {
-                        e.preventDefault();
-                        adjustPrompterSpeed(-0.5);
-                        return;
-                    }
-                    // Map common presenter default Esc/Black screen to Play Toggle
-                    if (key === "Escape" || key === "Escape") {
-                        e.preventDefault();
-                        toggleScrollPlay();
-                        return;
-                    }
+                // VERY IMPORTANT: Prevent standard browser default actions for keys when running 
+                // teleprompter Mode. This blocks PageUp, PageDown, and Arrow keys from jumping the text.
+                if (e.key !== 'Escape' && e.code !== 'Escape') {
+                    e.preventDefault();
                 }
 
-                // 2. STANDARD DEFAULT CUSTOM KEYBINDS
-                if (key === state.bindings.toggle || valueKey === state.bindings.toggle) {
-                    e.preventDefault();
+                const receivedCode = e.code;
+                const receivedKey = e.key;
+
+                // Match against mapped actions
+                if (matchesBind('toggle', receivedCode, receivedKey)) {
                     toggleScrollPlay();
-                } else if (key === state.bindings.speedUp || valueKey === state.bindings.speedUp) {
-                    e.preventDefault();
+                } else if (matchesBind('speedUp', receivedCode, receivedKey)) {
                     adjustPrompterSpeed(0.5);
-                } else if (key === state.bindings.speedDown || valueKey === state.bindings.speedDown) {
-                    e.preventDefault();
+                } else if (matchesBind('speedDown', receivedCode, receivedKey)) {
                     adjustPrompterSpeed(-0.5);
-                } else if (key === state.bindings.reset || valueKey === state.bindings.reset) {
-                    e.preventDefault();
+                } else if (matchesBind('reset', receivedCode, receivedKey)) {
                     resetPrompterToStart();
-                } else if (key === state.bindings.exit || valueKey === state.bindings.exit) {
-                    e.preventDefault();
+                } else if (matchesBind('exit', receivedCode, receivedKey)) {
                     exitPrompter();
                 }
             }
-        });
+        }, { passive: false }); // Explicitly register as active to ensure preventDefault() works without delays
+
+        // Key match evaluator helper
+        function matchesBind(action, code, key) {
+            const target = state.bindings[action];
+            if (!target) return false;
+            
+            // Check literal representation mappings
+            if (target === " ") {
+                return (code === "Space" || key === " ");
+            }
+            return (code === target || key === target);
+        }
 
         // Launch & Style calculations for Prompter Mode Viewport
         function launchPrompter() {
@@ -681,6 +666,13 @@
                 guide.classList.add('hidden');
             }
 
+            // Inject configured keybind indicators direct inside status help panel HUD bar
+            document.getElementById('hud-controls-display').innerHTML = `
+                <span class="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-bold">${getFriendlyName(state.bindings.speedUp)}</span> Up | 
+                <span class="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-bold">${getFriendlyName(state.bindings.speedDown)}</span> Down | 
+                <span class="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-bold">${getFriendlyName(state.bindings.toggle)}</span> Pause
+            `;
+
             viewport.classList.remove('hidden');
             document.body.classList.add('overflow-hidden');
 
@@ -695,7 +687,7 @@
             state.isScrolling = false;
         }
 
-        // Kinetic scrolling paint tick loop handler using requestAnimationFrame
+        // Scroll engine handling programmatic canvas shift values
         function scrollingEngineTick(timestamp) {
             const scrollFrame = document.getElementById('prompter-scroll-frame');
             const delta = (timestamp - lastTimestamp) / 1000; 
