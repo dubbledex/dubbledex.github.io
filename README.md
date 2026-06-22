@@ -62,10 +62,10 @@
                         <div>
                             <span class="block text-sm font-medium text-slate-400 mb-2">Display Flip / Mirroring</span>
                             <div class="grid grid-cols-2 gap-3">
-                                <button id="btn-mirror-horiz" onclick="toggleSetting('flipHorizontal')" class="py-2 px-3 border border-slate-700 bg-slate-850 hover:bg-slate-700 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition">
+                                <button id="btn-mirror-horiz" onclick="toggleSetting('flipHorizontal')" class="py-2 px-3 border border-slate-700 bg-slate-800 hover:bg-slate-755 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition">
                                     <i class="fa-solid fa-arrows-left-right"></i> Horizontal
                                 </button>
-                                <button id="btn-mirror-vert" onclick="toggleSetting('flipVertical')" class="py-2 px-3 border border-slate-700 bg-slate-850 hover:bg-slate-700 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition">
+                                <button id="btn-mirror-vert" onclick="toggleSetting('flipVertical')" class="py-2 px-3 border border-slate-700 bg-slate-800 hover:bg-slate-755 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition">
                                     <i class="fa-solid fa-arrows-up-down"></i> Vertical
                                 </button>
                             </div>
@@ -118,7 +118,7 @@
                         </h2>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" id="input-focus-enabled" checked onchange="updateSetting('focusBarEnabled', this.checked)" class="sr-only peer">
-                            <div class="w-11 h-6 bg-slate-755 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                         </label>
                     </div>
 
@@ -129,14 +129,14 @@
                                     <span>Focus Height Offset</span>
                                     <span id="label-focus-height" class="text-emerald-400 font-semibold">100px</span>
                                 </label>
-                                <input type="range" id="input-focus-height" min="40" max="300" value="100" oninput="updateSetting('focusBarHeight', this.value)" class="w-full h-2 bg-slate-755 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                                <input type="range" id="input-focus-height" min="40" max="300" value="100" oninput="updateSetting('focusBarHeight', this.value)" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
                             </div>
                             <div>
                                 <label class="flex justify-between text-sm font-medium text-slate-400 mb-1">
                                     <span>Screen Position</span>
                                     <span id="label-focus-offset" class="text-emerald-400 font-semibold">35%</span>
                                 </label>
-                                <input type="range" id="input-focus-offset" min="10" max="90" value="35" oninput="updateSetting('focusOffset', this.value)" class="w-full h-2 bg-slate-755 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                                <input type="range" id="input-focus-offset" min="10" max="90" value="35" oninput="updateSetting('focusOffset', this.value)" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
                             </div>
                         </div>
 
@@ -176,13 +176,13 @@
                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
                                 <span class="block text-sm font-medium text-slate-400">Configure Key Bindings</span>
                                 <div class="flex items-center gap-2">
-                                    <button onclick="applyPresenterPresets()" class="text-xs bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 px-2 py-1 rounded font-bold hover:bg-emerald-600/35 transition">
+                                    <button onclick="applyPresenterPresets()" class="text-xs bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded font-bold hover:bg-emerald-600/35 transition">
                                         <i class="fa-solid fa-wand-magic-sparkles"></i> Preset Remote
                                     </button>
-                                    <button onclick="resetDefaultKeybindings()" class="text-xs text-rose-450 hover:text-rose-405 hover:underline font-semibold">Reset</button>
+                                    <button onclick="resetDefaultKeybindings()" class="text-xs text-red-405 hover:text-red-400 hover:underline font-semibold">Reset</button>
                                 </div>
                             </div>
-                            <p class="text-[11px] text-slate-450 leading-relaxed mb-4 bg-slate-900/50 p-2.5 rounded-lg border border-slate-700/50">
+                            <p class="text-[11px] text-slate-400 leading-relaxed mb-4 bg-slate-900/50 p-2.5 rounded-lg border border-slate-700/50">
                                 <strong>Tip:</strong> Tap a button below, then immediately press any key on your keyboard <strong>or your Bluetooth Presenter remote</strong> to map it. We block all browser page moves automatically.
                             </p>
                             <div class="space-y-2 text-xs">
@@ -195,7 +195,7 @@
                                     <button class="keybind-btn border border-violet-500/30 px-3 py-1.5 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider hover:bg-violet-900/40 min-w-[100px]" onclick="openCaptureModal('speedDown')" id="bind-speedDown">ArrowDown</button>
                                 </div>
                                 <div class="flex justify-between items-center py-2 px-3 bg-slate-900/50 rounded-lg border border-slate-700">
-                                    <span class="text-slate-350 font-medium">Start / Stop Toggle</span>
+                                    <span class="text-slate-355 font-medium">Start / Stop Toggle</span>
                                     <button class="keybind-btn border border-violet-500/30 px-3 py-1.5 rounded bg-violet-950/40 text-violet-300 font-bold tracking-wider hover:bg-violet-900/40 min-w-[100px]" onclick="openCaptureModal('toggle')" id="bind-toggle">Space</button>
                                 </div>
                                 <div class="flex justify-between items-center py-2 px-3 bg-slate-900/50 rounded-lg border border-slate-700">
@@ -292,39 +292,39 @@
             </div>
             <div class="h-4 w-[1px] bg-slate-700"></div>
             <div class="flex items-center gap-2">
-                <span class="text-slate-400 font-semibold">Active: </span>
+                <span class="text-slate-400 font-semibold">Active controls: </span>
                 <span class="text-slate-300" id="hud-controls-display">Keys</span>
             </div>
             <div class="h-4 w-[1px] bg-slate-700"></div>
-            <button onclick="exitPrompter()" class="text-rose-455 hover:text-rose-400 font-bold flex items-center gap-1 transition">
+            <button onclick="exitPrompter()" class="text-red-400 hover:text-red-300 font-bold flex items-center gap-1 transition">
                 <i class="fa-solid fa-rectangle-xmark"></i> Close (Esc)
             </button>
         </div>
     </div>
 
 
-    <!-- DEDICATED KEY CAPTURE OVERLAY (BLOCKED RACE CONDITION SANDBOX) -->
-    <div id="binding-modal-overlay" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300 backdrop-blur-md">
+    <!-- DEDICATED KEY CAPTURE OVERLAY -->
+    <div id="binding-modal-overlay" class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300 backdrop-blur-md">
         <!-- Target hidden text entry inside capture overlay allows mobile OS virtual keyboards to deploy safely -->
         <input type="text" id="hidden-key-binder" class="absolute opacity-0 pointer-events-none w-px h-px shadow-none border-none outline-none" autocomplete="off">
         
-        <div class="bg-slate-850 border border-slate-700 max-w-lg w-full rounded-2xl p-8 shadow-2xl relative text-center">
+        <div class="bg-slate-800 border border-slate-700 max-w-lg w-full rounded-2xl p-8 shadow-2xl relative text-center">
             <!-- Loading Pulsing target indicator -->
             <div class="w-20 h-20 bg-blue-600/20 border-2 border-dashed border-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-400 text-3xl animate-spin" style="animation-duration: 4s;">
                 <i class="fa-solid fa-arrows-to-dot"></i>
             </div>
-            <h3 class="text-xl font-bold text-white mb-1"><span id="capture-action-name-label" class="text-blue-450 uppercase">ACTION</span></h3>
+            <h3 class="text-xl font-bold text-white mb-1"><span id="capture-action-name-label" class="text-blue-400 uppercase">ACTION</span></h3>
             <p class="text-md font-semibold text-slate-300 mb-6">Press any button on your Presenter Remote or Keyboard</p>
             
-            <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl text-xs text-slate-400 font-sans leading-relaxed text-left space-y-1 mb-6">
+            <div class="bg-slate-900 border border-slate-805 p-4 rounded-xl text-xs text-slate-400 font-sans leading-relaxed text-left space-y-1 mb-6">
                 <strong>How to map standard remotes:</strong>
-                <p>• Press the <strong>[Next / PageDown]</strong> button to configure speed ups.</p>
-                <p>• Press the <strong>[Prev / PageUp]</strong> button to configure slow downs.</p>
+                <p>• Press the <strong>[Next / PageDown / ArrowRight]</strong> button to configure speed ups.</p>
+                <p>• Press the <strong>[Prev / PageUp / ArrowLeft]</strong> button to configure slow downs.</p>
                 <p>• Click the <strong>Cancel</strong> button below if you want to abort.</p>
             </div>
 
             <!-- Manual Cancel element acts to instantly teardown active targeting loops -->
-            <button onclick="closeCaptureModal()" class="w-full sm:w-auto bg-slate-705 hover:bg-slate-600 border border-slate-600/60 text-slate-205 text-sm font-bold px-6 py-2.5 rounded-xl transition">
+            <button onclick="closeCaptureModal()" class="w-full sm:w-auto bg-slate-700 hover:bg-slate-600 border border-slate-650 text-slate-200 text-sm font-bold px-6 py-2.5 rounded-xl transition">
                 Cancel Mapping
             </button>
         </div>
@@ -354,7 +354,7 @@
 
     <!-- JAVASCRIPT LOGIC CONTROLLING CONFIGS, SCROLL ENGINE, & FILE EXPORTS -->
     <script>
-        // Default standard presentation keyboard layouts
+        // Default presentation keyboard layouts
         const defaultBindings = {
             speedUp: "ArrowUp",
             speedDown: "ArrowDown",
@@ -397,7 +397,46 @@
             applyInteractiveHighlights();
         });
 
-        // Local Storage persistent handlers
+        // Safe shallow merge prevents legacy saves from crashing current fields
+        function loadFromLocalStorage() {
+            const raw = localStorage.getItem('tp_state');
+            if (raw) {
+                try {
+                    const parsed = JSON.parse(raw);
+                    if (parsed && typeof parsed === 'object') {
+                        if (parsed.text !== undefined) state.text = parsed.text;
+                        if (parsed.fileName !== undefined) state.fileName = parsed.fileName;
+                        if (parsed.flipHorizontal !== undefined) state.flipHorizontal = !!parsed.flipHorizontal;
+                        if (parsed.flipVertical !== undefined) state.flipVertical = !!parsed.flipVertical;
+                        if (parsed.textSize !== undefined) state.textSize = parseInt(parsed.textSize) || 44;
+                        if (parsed.textColor !== undefined) state.textColor = parsed.textColor;
+                        if (parsed.bgColor !== undefined) state.bgColor = parsed.bgColor;
+                        if (parsed.bgOpacity !== undefined) state.bgOpacity = parseInt(parsed.bgOpacity) || 100;
+                        if (parsed.indent !== undefined) state.indent = parseInt(parsed.indent) || 14;
+                        if (parsed.startSpeed !== undefined) state.startSpeed = parseInt(parsed.startSpeed) || 4;
+                        if (parsed.focusBarEnabled !== undefined) state.focusBarEnabled = !!parsed.focusBarEnabled;
+                        if (parsed.focusBarHeight !== undefined) state.focusBarHeight = parseInt(parsed.focusBarHeight) || 90;
+                        if (parsed.focusOffset !== undefined) state.focusOffset = parseInt(parsed.focusOffset) || 35;
+                        if (parsed.focusBarColor !== undefined) state.focusBarColor = parsed.focusBarColor;
+                        if (parsed.focusBarOpacity !== undefined) state.focusBarOpacity = parseInt(parsed.focusBarOpacity) || 25;
+                        
+                        // Assure bindings dictionary exists securely
+                        if (parsed.bindings && typeof parsed.bindings === 'object') {
+                            state.bindings.speedUp = parsed.bindings.speedUp || defaultBindings.speedUp;
+                            state.bindings.speedDown = parsed.bindings.speedDown || defaultBindings.speedDown;
+                            state.bindings.toggle = parsed.bindings.toggle || defaultBindings.toggle;
+                            state.bindings.reset = parsed.bindings.reset || defaultBindings.reset;
+                            state.bindings.exit = parsed.bindings.exit || defaultBindings.exit;
+                        }
+                    }
+                } catch (e) {
+                    console.error("Local storage sync error", e);
+                    // Clear corrupted stores
+                    localStorage.removeItem('tp_state');
+                }
+            }
+        }
+
         function saveToLocalStorage() {
             localStorage.setItem('tp_state', JSON.stringify({
                 text: state.text,
@@ -417,19 +456,6 @@
                 focusBarOpacity: state.focusBarOpacity,
                 bindings: state.bindings
             }));
-        }
-
-        function loadFromLocalStorage() {
-            const raw = localStorage.getItem('tp_state');
-            if (raw) {
-                try {
-                    const parsed = JSON.parse(raw);
-                    if (!parsed.bindings) parsed.bindings = { ...defaultBindings };
-                    Object.assign(state, parsed);
-                } catch (e) {
-                    console.error("Local storage sync error", e);
-                }
-            }
         }
 
         // Initialize form elements with variables
@@ -510,16 +536,16 @@
         function applyInteractiveHighlights() {
             const hBtn = document.getElementById('btn-mirror-horiz');
             if (state.flipHorizontal) {
-                hBtn.classList.add('bg-blue-600/20', 'border-blue-500', 'text-blue-400 font-bold');
+                hBtn.classList.add('bg-blue-600/20', 'border-blue-500', 'text-blue-405', 'font-black');
             } else {
-                hBtn.classList.remove('bg-blue-600/20', 'border-blue-500', 'text-blue-400 font-bold');
+                hBtn.classList.remove('bg-blue-600/20', 'border-blue-500', 'text-blue-405', 'font-black');
             }
             
             const vBtn = document.getElementById('btn-mirror-vert');
             if (state.flipVertical) {
-                vBtn.classList.add('bg-blue-600/20', 'border-blue-500', 'text-blue-400 font-bold');
+                vBtn.classList.add('bg-blue-600/20', 'border-blue-500', 'text-blue-405', 'font-black');
             } else {
-                vBtn.classList.remove('bg-blue-600/20', 'border-blue-500', 'text-blue-400 font-bold');
+                vBtn.classList.remove('bg-blue-600/20', 'border-blue-500', 'text-blue-405', 'font-black');
             }
         }
 
@@ -533,7 +559,9 @@
         }
 
         function getFriendlyName(keyString) {
+            if (!keyString) return "Unbound";
             if (keyString === " ") return "Space";
+            if (keyString.startsWith("RawCode")) return "Key Code " + keyString.replace("RawCode", "");
             return keyString;
         }
 
@@ -547,7 +575,7 @@
         function applyPresenterPresets() {
             state.bindings.speedUp = "PageDown";
             state.bindings.speedDown = "PageUp";
-            state.bindings.toggle = "Escape"; // Mapped typically to standard clicker "Black out / Enter Show" command buttons
+            state.bindings.toggle = "Escape"; 
             state.bindings.reset = "KeyR";
             state.bindings.exit = "KeyQ";
             saveToLocalStorage();
@@ -556,10 +584,8 @@
 
         // BINDING SELECTION CONTROL CONSOLE FUNCTIONS (SANDBOX MODAL DETECTORS)
         function openCaptureModal(bindingName) {
-            // Re-assert target
             captureTarget = bindingName;
 
-            // Set dynamic header text in modal box
             let friendlyAction = "Accelerate";
             if (bindingName === "speedDown") friendlyAction = "Decelerate / Reverse";
             if (bindingName === "toggle") friendlyAction = "Play / Pause Toggle";
@@ -568,11 +594,10 @@
 
             document.getElementById('capture-action-name-label').innerText = `Configuring: ${friendlyAction}`;
 
-            // Reveal key bindings overlay box
             const overlay = document.getElementById('binding-modal-overlay');
             overlay.classList.remove('opacity-0', 'pointer-events-none');
 
-            // Set instant programmatic cursor focus to capture mobile keyboards
+            // Instantly focus hidden element to summon virtual keyboard if needed
             const forceField = document.getElementById('hidden-key-binder');
             forceField.value = "";
             forceField.focus();
@@ -582,7 +607,6 @@
             const overlay = document.getElementById('binding-modal-overlay');
             overlay.classList.add('opacity-0', 'pointer-events-none');
             
-            // Clean dynamic target pointer structures
             captureTarget = null;
             document.getElementById('hidden-key-binder').blur();
         }
@@ -591,10 +615,6 @@
         function registerKeystrokeInsideModal(eventCode, eventKey, eventKeyCode) {
             if (!captureTarget) return;
 
-            // Priority logic for captures:
-            // 1. Attempt standard event.code (Isolates from specific language keyboards)
-            // 2. Fallback index key literal properties
-            // 3. Fallback standard generic absolute KeyCodes (e.g., custom controller clickers)
             let capturedData = eventCode || eventKey;
             
             if (eventKey === " " || eventCode === "Space") {
@@ -638,8 +658,7 @@
 
             // Case B: Full screen teleprompter mode actively running
             if (isPrompterActive) {
-                // IMPORTANT: Prevent default browser controls (PageUp, PageDown, or arrows) 
-                // from causing jumps inside our prompter
+                // Prevent browser default actions (PageUp, PageDown) from causing native page scrolling
                 if (e.key !== 'Escape' && e.code !== 'Escape') {
                     e.preventDefault();
                 }
@@ -672,7 +691,6 @@
                 return (eventCode === "Space" || eventKey === " ");
             }
 
-            // Test standard strings patterns, key overrides, or custom Raw key integers
             return (
                 eventCode === savedValue || 
                 eventKey === savedValue || 
@@ -688,9 +706,9 @@
             const content = document.getElementById('prompter-content');
             const guide = document.getElementById('prompter-focus-guide');
 
-            const rVal = parseInt(state.bgColor.slice(1, 3), 16);
-            const gVal = parseInt(state.bgColor.slice(3, 5), 16);
-            const bVal = parseInt(state.bgColor.slice(5, 7), 16);
+            const rVal = parseInt(state.bgColor.slice(1, 3), 16) || 0;
+            const gVal = parseInt(state.bgColor.slice(3, 5), 16) || 0;
+            const bVal = parseInt(state.bgColor.slice(5, 7), 16) || 0;
             viewport.style.backgroundColor = `rgba(${rVal}, ${gVal}, ${bVal}, ${state.bgOpacity / 100})`;
 
             content.style.fontSize = `${state.textSize}px`;
@@ -721,9 +739,9 @@
                 guide.style.height = `${state.focusBarHeight}px`;
                 guide.style.marginTop = `${-(state.focusBarHeight / 2)}px`;
                 
-                const fR = parseInt(state.focusBarColor.slice(1,3), 16);
-                const fG = parseInt(state.focusBarColor.slice(3,5), 16);
-                const fB = parseInt(state.focusBarColor.slice(5,7), 16);
+                const fR = parseInt(state.focusBarColor.slice(1,3), 16) || 0;
+                const fG = parseInt(state.focusBarColor.slice(3,5), 16) || 0;
+                const fB = parseInt(state.focusBarColor.slice(5,7), 16) || 0;
                 guide.style.backgroundColor = `rgba(${fR}, ${fG}, ${fB}, ${state.focusBarOpacity / 100})`;
                 guide.style.borderColor = `rgba(${fR}, ${fG}, ${fB}, ${(state.focusBarOpacity + 20) / 100})`;
             } else {
@@ -731,8 +749,8 @@
             }
 
             document.getElementById('hud-controls-display').innerHTML = `
-                <span class="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-bold">${getFriendlyName(state.bindings.speedUp)}</span> + | 
-                <span class="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-bold">${getFriendlyName(state.bindings.speedDown)}</span> - | 
+                <span class="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-bold">${getFriendlyName(state.bindings.speedUp)}</span> Up | 
+                <span class="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-bold">${getFriendlyName(state.bindings.speedDown)}</span> Down | 
                 <span class="bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-bold">${getFriendlyName(state.bindings.toggle)}</span> Pause
             `;
 
@@ -877,45 +895,4 @@
         }
 
         function stripRawRTF(rtfStr) {
-            let clean = rtfStr;
-            clean = clean.replace(/\\rtf1[\s\S]*?\\viewkind4\\uc1[\s\S]*?\\pard/g, "");
-            clean = clean.replace(/\\[a-z0-9\-]+(\s|;)?/g, " ");
-            clean = clean.replace(/\{[^\{\}]*\}/g, "");
-            clean = clean.replace(/\}/g, "");
-            clean = clean.replace(/\{/g, "");
-            clean = clean.trim();
-            return clean;
-        }
-
-        // Cloud Drive Dialog simulator explaining synchronization integration setup
-        function cloudIntegratorDialog(serviceName) {
-            const dialog = document.getElementById('cloud-dialog');
-            const iconWrap = document.getElementById('cloud-dialog-icon');
-            const title = document.getElementById('cloud-dialog-title');
-            const body = document.getElementById('cloud-dialog-body');
-
-            title.innerText = `${serviceName} Integration`;
-
-            if (serviceName === "Google Drive") {
-                iconWrap.innerHTML = `<i class="fa-brands fa-google-drive"></i>`;
-                body.innerHTML = `To read directly from <strong>Google Drive</strong>, we highly recommend synced folders:<br><br>
-                1. Save file directly inside your Google Drive Sync Folder locally on your Desktop.<br>
-                2. Select <strong>Import File</strong> locally to browse.<br>
-                3. Your changes sync to the cloud automatically when you edit or save directly using this interface!`;
-            } else {
-                iconWrap.innerHTML = `<i class="fa-brands fa-windows text-sky-400"></i>`;
-                body.innerHTML = `To read directly from <strong>Microsoft OneDrive</strong> sync:<br><br>
-                1. Simply save text formatting files directly in OneDrive folders.<br>
-                2. Tap import, browse OneDrive's mounting directories.<br>
-                3. Saving your export downloads will automatically upload updates into active MS files!`;
-            }
-
-            dialog.classList.remove('opacity-0', 'pointer-events-none');
-        }
-
-        function closeCloudDialog() {
-            document.getElementById('cloud-dialog').classList.add('opacity-0', 'pointer-events-none');
-        }
-    </script>
-</body>
-</html>
+            let clean
