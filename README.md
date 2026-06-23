@@ -329,7 +329,7 @@
       class="absolute inset-0 overflow-hidden outline-none"
       aria-label="Teleprompter reading view"
     >
-      <div id="prompterTransform" class="min-h-full w-full">
+      <div id="prompterTransform" class="min-h-full w-full will-change-transform">
         <div id="prompterText" class="whitespace-pre-wrap break-words pt-[65vh] pb-[65vh]"></div>
       </div>
     </div>
@@ -1229,71 +1229,79 @@
       window.scrollTo(0, savedBodyScrollY);
     }
 
-    function launchPrompter() {
-      lockBodyScroll();
+function launchPrompter() {
+  lockBodyScroll();
 
-      currentSpeed = 0;
-      isScrolling = false;
-      scrollPos = 0;
+  currentSpeed = 0;
+  isScrolling = false;
+  scrollPos = 0;
 
-      els.prompterPage.classList.remove("hidden");
+  els.prompterPage.classList.remove("hidden");
 
-      const bg = hexToRgb(state.bgColor);
-      els.prompterPage.style.backgroundColor =
-        `rgba(${bg.r}, ${bg.g}, ${bg.b}, ${state.bgOpacity / 100})`;
+  const bg = hexToRgb(state.bgColor);
+  els.prompterPage.style.backgroundColor =
+    `rgba(${bg.r}, ${bg.g}, ${bg.b}, ${state.bgOpacity / 100})`;
 
-      els.prompterText.textContent = state.text || "";
-      els.prompterText.style.fontSize = state.textSize + "px";
-      els.prompterText.style.lineHeight = "1.5";
-      els.prompterText.style.color = state.textColor;
-      els.prompterText.style.paddingLeft = state.indent + "%";
-      els.prompterText.style.paddingRight = state.indent + "%";
+  els.prompterText.textContent = state.text || "";
+  els.prompterText.style.fontSize = state.textSize + "px";
+  els.prompterText.style.lineHeight = "1.5";
+  els.prompterText.style.color = state.textColor;
+  els.prompterText.style.paddingLeft = state.indent + "%";
+  els.prompterText.style.paddingRight = state.indent + "%";
 
-      const sx = state.flipHorizontal ? -1 : 1;
-      const sy = state.flipVertical ? -1 : 1;
+  els.prompterFrame.scrollTop = 0;
 
-      els.prompterTransform.style.transform = `scale(${sx}, ${sy})`;
-      els.prompterTransform.style.transformOrigin = "center center";
+  applyPrompterTransform();
 
-      els.prompterFrame.scrollTop = 0;
+  if (state.focusEnabled) {
+    const fc = hexToRgb(state.focusColor);
 
-      if (state.focusEnabled) {
-        const fc = hexToRgb(state.focusColor);
+    els.focusBar.classList.remove("hidden");
+    els.focusBar.style.top = state.focusOffset + "vh";
+    els.focusBar.style.height = state.focusHeight + "px";
+    els.focusBar.style.marginTop = (-state.focusHeight / 2) + "px";
+    els.focusBar.style.backgroundColor =
+      `rgba(${fc.r}, ${fc.g}, ${fc.b}, ${state.focusOpacity / 100})`;
+  } else {
+    els.focusBar.classList.add("hidden");
+  }
 
-        els.focusBar.classList.remove("hidden");
-        els.focusBar.style.top = state.focusOffset + "vh";
-        els.focusBar.style.height = state.focusHeight + "px";
-        els.focusBar.style.marginTop = (-state.focusHeight / 2) + "px";
-        els.focusBar.style.backgroundColor =
-          `rgba(${fc.r}, ${fc.g}, ${fc.b}, ${state.focusOpacity / 100})`;
-      } else {
-        els.focusBar.classList.add("hidden");
-      }
+  els.controlsHud.textContent =
+    `${bindingLabel(state.bindings.speedUp)} up | ` +
+    `${bindingLabel(state.bindings.speedDown)} down | ` +
+    `${bindingLabel(state.bindings.toggle)} pause`;
 
-      els.controlsHud.textContent =
-        `${bindingLabel(state.bindings.speedUp)} up | ` +
-        `${bindingLabel(state.bindings.speedDown)} down | ` +
-        `${bindingLabel(state.bindings.toggle)} pause`;
+  updateHud();
 
-      updateHud();
+  if (!history.state || !history.state.prompterOpen) {
+    history.pushState({ prompterOpen: true }, "");
+    prompterHistoryActive = true;
+  }
 
-      if (!history.state || !history.state.prompterOpen) {
-        history.pushState({ prompterOpen: true }, "");
-        prompterHistoryActive = true;
-      }
-
-      setTimeout(() => {
-        try {
-          els.prompterFrame.focus({ preventScroll: true });
-        } catch (err) {
-          els.prompterFrame.focus();
-        }
-      }, 50);
-
-      if (rafId) cancelAnimationFrame(rafId);
-      lastTime = performance.now();
-      rafId = requestAnimationFrame(tick);
+  setTimeout(() => {
+    try {
+      els.prompterFrame.focus({ preventScroll: true });
+    } catch (err) {
+      els.prompterFrame.focus();
     }
+  }, 50);
+
+  if (rafId) cancelAnimationFrame(rafId);
+  lastTime = performance.now();
+  rafId = requestAnimationFrame(tick);
+}
+
+    function applyPrompterTransform() {
+  const sx = state.flipHorizontal ? -1 : 1;
+  const sy = state.flipVertical ? -1 : 1;
+
+  // Combine mirroring/flipping with smooth GPU scrolling.
+  // The negative scrollPos moves content upward.
+  els.prompterTransform.style.transform =
+    `scale(${sx}, ${sy}) translate3d(0, ${-scrollPos}px, 0)`;
+
+  els.prompterTransform.style.transformOrigin = "center top";
+}
 
     function exitPrompter(adjustHistory = true) {
       if (rafId) cancelAnimationFrame(rafId);
@@ -1314,35 +1322,38 @@
     }
 
     function tick(now) {
-      const dt = (now - lastTime) / 1000;
-      lastTime = now;
+  const dt = Math.min((now - lastTime) / 1000, 0.05);
+  lastTime = now;
 
-      if (isScrolling && currentSpeed !== 0) {
-        scrollPos += currentSpeed * 25 * dt;
+  if (isScrolling && currentSpeed !== 0) {
+    scrollPos += currentSpeed * 25 * dt;
 
-        const maxScroll = Math.max(
-          0,
-          els.prompterFrame.scrollHeight - els.prompterFrame.clientHeight
-        );
+    const maxScroll = getMaxTransformScroll();
 
-        if (scrollPos < 0) {
-          scrollPos = 0;
-          isScrolling = false;
-          currentSpeed = 0;
-        }
-
-        if (scrollPos > maxScroll) {
-          scrollPos = maxScroll;
-          isScrolling = false;
-          currentSpeed = 0;
-        }
-
-        els.prompterFrame.scrollTop = scrollPos;
-        updateHud();
-      }
-
-      rafId = requestAnimationFrame(tick);
+    if (scrollPos < 0) {
+      scrollPos = 0;
+      isScrolling = false;
+      currentSpeed = 0;
     }
+
+    if (scrollPos > maxScroll) {
+      scrollPos = maxScroll;
+      isScrolling = false;
+      currentSpeed = 0;
+    }
+
+    applyPrompterTransform();
+    updateHud();
+  }
+
+  rafId = requestAnimationFrame(tick);
+}
+    function getMaxTransformScroll() {
+  const contentHeight = els.prompterTransform.scrollHeight;
+  const frameHeight = els.prompterFrame.clientHeight;
+  return Math.max(0, contentHeight - frameHeight);
+}
+
 
     function togglePlay() {
       isScrolling = !isScrolling;
@@ -1363,13 +1374,12 @@
     }
 
     function resetPrompt() {
-      scrollPos = 0;
-      els.prompterFrame.scrollTop = 0;
-      isScrolling = false;
-      currentSpeed = 0;
-      updateHud();
-    }
-
+  scrollPos = 0;
+  isScrolling = false;
+  currentSpeed = 0;
+  applyPrompterTransform();
+  updateHud();
+}
     function updateHud() {
       els.speedHud.textContent = isScrolling
         ? currentSpeed.toFixed(1)
