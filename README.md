@@ -1,10 +1,10 @@
-
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>Web Teleprompter</title>
+  <title>Canvas Web Teleprompter</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
 
@@ -31,9 +31,16 @@
     }
 
     #prompterPage,
-    #prompterFrame {
+    #canvasStage,
+    #prompterCanvas {
       overscroll-behavior: none;
       touch-action: none;
+    }
+
+    #prompterCanvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
     }
 
     .kbd-capturing {
@@ -49,9 +56,9 @@
   <main id="setupPage" class="max-w-7xl mx-auto p-4 md:p-8">
     <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-700 pb-5 mb-6">
       <div>
-        <h1 class="text-3xl font-bold">Web Teleprompter</h1>
+        <h1 class="text-3xl font-bold">Canvas Web Teleprompter</h1>
         <p class="text-slate-400 text-sm mt-1">
-          Browser-only teleprompter with keyboard and Bluetooth presenter controls.
+          Smooth canvas-rendered teleprompter with keyboard and Bluetooth presenter controls.
         </p>
       </div>
 
@@ -319,19 +326,10 @@
     </div>
   </main>
 
-  <!-- PROMPTER PAGE -->
+  <!-- CANVAS PROMPTER PAGE -->
   <section id="prompterPage" class="hidden fixed inset-0 z-50 overflow-hidden">
-    <div id="focusBar" class="hidden fixed left-0 right-0 pointer-events-none z-20 border-y border-white/20"></div>
-
-    <div
-      id="prompterFrame"
-      tabindex="0"
-      class="absolute inset-0 overflow-hidden outline-none"
-      aria-label="Teleprompter reading view"
-    >
-      <div id="prompterTransform" class="min-h-full w-full">
-      <div id="prompterText" class="whitespace-pre-wrap break-words pt-[65vh] pb-[65vh]"></div>
-      </div>
+    <div id="canvasStage" tabindex="0" class="absolute inset-0 outline-none">
+      <canvas id="prompterCanvas"></canvas>
     </div>
 
     <!-- Mobile-friendly visible controls -->
@@ -367,13 +365,13 @@
   <script>
     "use strict";
 
-    const STORAGE_KEY = "teleprompter_pro_e2_control_v5";
+    const STORAGE_KEY = "canvas_teleprompter_e2_v1";
 
     const defaultState = {
       text:
-        "Welcome to the web teleprompter.\n\n" +
+        "Welcome to the canvas web teleprompter.\n\n" +
+        "This version renders text onto a canvas for smoother motion and less flicker at higher speeds.\n\n" +
         "Paste or type your script into the setup page.\n\n" +
-        "Use your configured keyboard or Bluetooth presenter controls to speed up, slow down, pause, reset, or exit.\n\n" +
         "Default controls:\n" +
         "- Speed up: ArrowUp\n" +
         "- Slow down / reverse: ArrowDown\n" +
@@ -414,10 +412,11 @@
     let currentSpeed = 0;
     let isScrolling = false;
     let scrollPos = 0;
+    let maxScroll = 0;
     let rafId = null;
     let lastTime = 0;
     let lastHudUpdate = 0;
-    let appliedScrollTop = 0;
+
     let captureAction = null;
     let prompterHistoryActive = false;
     let savedBodyScrollY = 0;
@@ -425,6 +424,22 @@
     let lastPointerClickTime = 0;
     let pointerDownAt = 0;
     let pointerLongPressTimer = null;
+
+    let canvas = null;
+    let ctx = null;
+    let canvasCssWidth = 0;
+    let canvasCssHeight = 0;
+    let canvasDpr = 1;
+
+    let renderLines = [];
+    let lineHeight = 72;
+    let contentHeight = 0;
+    let topPadding = 0;
+    let bottomPadding = 0;
+    let textAreaLeft = 0;
+    let textAreaWidth = 0;
+
+    const pixelsPerSecondPerSpeedUnit = 24;
 
     const els = {};
 
@@ -438,6 +453,9 @@
 
     function init() {
       cacheEls();
+      canvas = els.prompterCanvas;
+      ctx = canvas.getContext("2d", { alpha: true });
+
       loadState();
       renderSetup();
       wireUI();
@@ -482,10 +500,8 @@
         "exportRtfBtn",
 
         "prompterPage",
-        "prompterFrame",
-        "prompterTransform",
-        "prompterText",
-        "focusBar",
+        "canvasStage",
+        "prompterCanvas",
         "speedHud",
         "controlsHud",
         "closePromptBtn",
@@ -529,7 +545,6 @@
           if (saved.bindings[action] && typeof saved.bindings[action] === "object") {
             const normalised = normaliseSignature(saved.bindings[action]);
 
-            // Never restore ambiguous Button 0 bindings.
             if (!isAmbiguousPointerButton0(normalised)) {
               out.bindings[action] = normalised;
             }
@@ -656,7 +671,7 @@
           "Use E2 PageUp/PageDown mode first.\n" +
           "If that fails, try Left/Right mode.\n\n" +
           "Return/Back should exit prompt mode if the browser exposes it.\n\n" +
-          "If both page buttons still appear as Button 0, enable Single-button fallback."
+          "If both page buttons appear as Button 0, enable Single-button fallback."
         );
       });
 
@@ -687,6 +702,13 @@
       window.addEventListener("click", handleInputEvent, { capture: true, passive: false });
 
       window.addEventListener("touchmove", handleTouchMoveLock, { capture: true, passive: false });
+
+      window.addEventListener("resize", () => {
+        if (!els.prompterPage.classList.contains("hidden")) {
+          prepareCanvasPrompter();
+          drawCanvasFrame();
+        }
+      });
 
       window.addEventListener("popstate", () => {
         const isPrompting = !els.prompterPage.classList.contains("hidden");
@@ -854,7 +876,6 @@
 
           saveState();
 
-          const finishedAction = captureAction;
           captureAction = null;
 
           els.captureStatus.classList.add("hidden");
@@ -864,8 +885,6 @@
           });
 
           updateBindingButtons();
-
-          console.log("Captured binding", finishedAction, state.bindings[finishedAction]);
         }
 
         return;
@@ -1230,85 +1249,42 @@
       window.scrollTo(0, savedBodyScrollY);
     }
 
-function launchPrompter() {
-  lockBodyScroll();
+    function launchPrompter() {
+      lockBodyScroll();
 
-  currentSpeed = 0;
-  isScrolling = false;
-  scrollPos = 0;
-  appliedScrollTop = 0;
+      currentSpeed = 0;
+      isScrolling = false;
+      scrollPos = 0;
 
-  els.prompterPage.classList.remove("hidden");
+      els.prompterPage.classList.remove("hidden");
 
-  const bg = hexToRgb(state.bgColor);
-  els.prompterPage.style.backgroundColor =
-    `rgba(${bg.r}, ${bg.g}, ${bg.b}, ${state.bgOpacity / 100})`;
+      prepareCanvasPrompter();
+      drawCanvasFrame();
+      updateHud(true);
 
-  els.prompterText.textContent = state.text || "";
-  els.prompterText.style.fontSize = state.textSize + "px";
-  els.prompterText.style.lineHeight = "1.5";
-  els.prompterText.style.color = state.textColor;
-  els.prompterText.style.paddingLeft = state.indent + "%";
-  els.prompterText.style.paddingRight = state.indent + "%";
+      els.controlsHud.textContent =
+        `${bindingLabel(state.bindings.speedUp)} up | ` +
+        `${bindingLabel(state.bindings.speedDown)} down | ` +
+        `${bindingLabel(state.bindings.toggle)} pause`;
 
-  const sx = state.flipHorizontal ? -1 : 1;
-  const sy = state.flipVertical ? -1 : 1;
+      if (!history.state || !history.state.prompterOpen) {
+        history.pushState({ prompterOpen: true }, "");
+        prompterHistoryActive = true;
+      }
 
-  els.prompterTransform.style.transform = `scale(${sx}, ${sy})`;
-  els.prompterTransform.style.transformOrigin = "center center";
+      setTimeout(() => {
+        try {
+          els.canvasStage.focus({ preventScroll: true });
+        } catch (err) {
+          els.canvasStage.focus();
+        }
+      }, 50);
 
-  els.prompterFrame.scrollTop = 0;
-
-  if (state.focusEnabled) {
-    const fc = hexToRgb(state.focusColor);
-
-    els.focusBar.classList.remove("hidden");
-    els.focusBar.style.top = state.focusOffset + "vh";
-    els.focusBar.style.height = state.focusHeight + "px";
-    els.focusBar.style.marginTop = (-state.focusHeight / 2) + "px";
-    els.focusBar.style.backgroundColor =
-      `rgba(${fc.r}, ${fc.g}, ${fc.b}, ${state.focusOpacity / 100})`;
-  } else {
-    els.focusBar.classList.add("hidden");
-  }
-
-  els.controlsHud.textContent =
-    `${bindingLabel(state.bindings.speedUp)} up | ` +
-    `${bindingLabel(state.bindings.speedDown)} down | ` +
-    `${bindingLabel(state.bindings.toggle)} pause`;
-
-  updateHud(true);
-
-  if (!history.state || !history.state.prompterOpen) {
-    history.pushState({ prompterOpen: true }, "");
-    prompterHistoryActive = true;
-  }
-
-  setTimeout(() => {
-    try {
-      els.prompterFrame.focus({ preventScroll: true });
-    } catch (err) {
-      els.prompterFrame.focus();
+      if (rafId) cancelAnimationFrame(rafId);
+      lastTime = performance.now();
+      lastHudUpdate = 0;
+      rafId = requestAnimationFrame(canvasTick);
     }
-  }, 50);
-
-  if (rafId) cancelAnimationFrame(rafId);
-  lastTime = performance.now();
-  lastHudUpdate = 0;
-  rafId = requestAnimationFrame(tick);
-}
-
-    function applyPrompterTransform() {
-  const sx = state.flipHorizontal ? -1 : 1;
-  const sy = state.flipVertical ? -1 : 1;
-
-  // Combine mirroring/flipping with smooth GPU scrolling.
-  // The negative scrollPos moves content upward.
-  els.prompterTransform.style.transform =
-    `scale(${sx}, ${sy}) translate3d(0, ${-scrollPos}px, 0)`;
-
-  els.prompterTransform.style.transformOrigin = "center top";
-}
 
     function exitPrompter(adjustHistory = true) {
       if (rafId) cancelAnimationFrame(rafId);
@@ -1328,58 +1304,155 @@ function launchPrompter() {
       }
     }
 
-    function tick(now) {
-  const dt = Math.min((now - lastTime) / 1000, 0.05);
-  lastTime = now;
+    function prepareCanvasPrompter() {
+      canvasCssWidth = window.innerWidth;
+      canvasCssHeight = window.innerHeight;
+      canvasDpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
 
-  if (isScrolling && currentSpeed !== 0) {
-    // Convert speed units into pixels per second.
-    // Increase/decrease this if you want the speed scale to feel different.
-    const pixelsPerSecondPerSpeedUnit = 16;
+      canvas.width = Math.round(canvasCssWidth * canvasDpr);
+      canvas.height = Math.round(canvasCssHeight * canvasDpr);
+      canvas.style.width = canvasCssWidth + "px";
+      canvas.style.height = canvasCssHeight + "px";
 
-    scrollPos += currentSpeed * pixelsPerSecondPerSpeedUnit * dt;
+      ctx.setTransform(canvasDpr, 0, 0, canvasDpr, 0, 0);
+      ctx.imageSmoothingEnabled = false;
 
-    const maxScroll = Math.max(
-      0,
-      els.prompterFrame.scrollHeight - els.prompterFrame.clientHeight
-    );
+      topPadding = canvasCssHeight * 0.65;
+      bottomPadding = canvasCssHeight * 0.65;
 
-    if (scrollPos < 0) {
-      scrollPos = 0;
-      isScrolling = false;
-      currentSpeed = 0;
+      textAreaLeft = canvasCssWidth * (state.indent / 100);
+      textAreaWidth = Math.max(100, canvasCssWidth - textAreaLeft * 2);
+
+      lineHeight = Math.round(state.textSize * 1.5);
+
+      ctx.font = `${state.textSize}px Arial, Helvetica, sans-serif`;
+      ctx.textBaseline = "top";
+
+      renderLines = wrapTextForCanvas(state.text || "", textAreaWidth);
+      contentHeight = topPadding + renderLines.length * lineHeight + bottomPadding;
+      maxScroll = Math.max(0, contentHeight - canvasCssHeight);
     }
 
-    if (scrollPos > maxScroll) {
-      scrollPos = maxScroll;
-      isScrolling = false;
-      currentSpeed = 0;
+    function wrapTextForCanvas(text, maxWidth) {
+      const output = [];
+      const paragraphs = String(text).replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+
+      for (const paragraph of paragraphs) {
+        if (paragraph.trim() === "") {
+          output.push("");
+          continue;
+        }
+
+        const words = paragraph.split(/\s+/);
+        let line = "";
+
+        for (const word of words) {
+          const test = line ? line + " " + word : word;
+          const width = ctx.measureText(test).width;
+
+          if (width <= maxWidth || !line) {
+            line = test;
+          } else {
+            output.push(line);
+            line = word;
+          }
+        }
+
+        if (line) output.push(line);
+      }
+
+      return output;
     }
 
-    // Apply an integer scroll position to reduce sub-pixel text shimmer.
-    const nextScrollTop = Math.round(scrollPos);
+    function canvasTick(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
 
-    if (nextScrollTop !== appliedScrollTop) {
-      appliedScrollTop = nextScrollTop;
-      els.prompterFrame.scrollTop = appliedScrollTop;
+      if (isScrolling && currentSpeed !== 0) {
+        scrollPos += currentSpeed * pixelsPerSecondPerSpeedUnit * dt;
+
+        if (scrollPos < 0) {
+          scrollPos = 0;
+          isScrolling = false;
+          currentSpeed = 0;
+        }
+
+        if (scrollPos > maxScroll) {
+          scrollPos = maxScroll;
+          isScrolling = false;
+          currentSpeed = 0;
+        }
+      }
+
+      drawCanvasFrame();
+
+      if (now - lastHudUpdate > 120) {
+        updateHud(true);
+        lastHudUpdate = now;
+      }
+
+      rafId = requestAnimationFrame(canvasTick);
     }
 
-    // Do not update HUD every frame — it can cause layout stutter.
-    if (now - lastHudUpdate > 120) {
-      updateHud();
-      lastHudUpdate = now;
+    function drawCanvasFrame() {
+      ctx.save();
+
+      // Reset to CSS pixel coordinate space.
+      ctx.setTransform(canvasDpr, 0, 0, canvasDpr, 0, 0);
+
+      const bg = hexToRgb(state.bgColor);
+      ctx.clearRect(0, 0, canvasCssWidth, canvasCssHeight);
+      ctx.fillStyle = `rgba(${bg.r}, ${bg.g}, ${bg.b}, ${state.bgOpacity / 100})`;
+      ctx.fillRect(0, 0, canvasCssWidth, canvasCssHeight);
+
+      // Apply mirror/flip around screen centre.
+      ctx.translate(canvasCssWidth / 2, canvasCssHeight / 2);
+      ctx.scale(state.flipHorizontal ? -1 : 1, state.flipVertical ? -1 : 1);
+      ctx.translate(-canvasCssWidth / 2, -canvasCssHeight / 2);
+
+      ctx.font = `${state.textSize}px Arial, Helvetica, sans-serif`;
+      ctx.textBaseline = "top";
+      ctx.fillStyle = state.textColor;
+
+      const firstLineIndex = Math.max(0, Math.floor((scrollPos - topPadding) / lineHeight) - 2);
+      const lastLineIndex = Math.min(
+        renderLines.length - 1,
+        Math.ceil((scrollPos + canvasCssHeight - topPadding) / lineHeight) + 2
+      );
+
+      for (let i = firstLineIndex; i <= lastLineIndex; i++) {
+        const y = topPadding + i * lineHeight - scrollPos;
+        ctx.fillText(renderLines[i], textAreaLeft, y);
+      }
+
+      ctx.restore();
+
+      if (state.focusEnabled) {
+        drawFocusBar();
+      }
     }
-  }
 
-  rafId = requestAnimationFrame(tick);
-}
+    function drawFocusBar() {
+      const fc = hexToRgb(state.focusColor);
+      const barH = state.focusHeight;
+      const y = canvasCssHeight * (state.focusOffset / 100) - barH / 2;
 
-    function getMaxTransformScroll() {
-  const contentHeight = els.prompterTransform.scrollHeight;
-  const frameHeight = els.prompterFrame.clientHeight;
-  return Math.max(0, contentHeight - frameHeight);
-}
+      ctx.save();
+      ctx.setTransform(canvasDpr, 0, 0, canvasDpr, 0, 0);
+      ctx.fillStyle = `rgba(${fc.r}, ${fc.g}, ${fc.b}, ${state.focusOpacity / 100})`;
+      ctx.fillRect(0, y, canvasCssWidth, barH);
 
+      ctx.strokeStyle = `rgba(${fc.r}, ${fc.g}, ${fc.b}, ${Math.min(1, (state.focusOpacity + 20) / 100)})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvasCssWidth, y);
+      ctx.moveTo(0, y + barH);
+      ctx.lineTo(canvasCssWidth, y + barH);
+      ctx.stroke();
+
+      ctx.restore();
+    }
 
     function togglePlay() {
       isScrolling = !isScrolling;
@@ -1388,40 +1461,38 @@ function launchPrompter() {
         currentSpeed = Number(state.startSpeed) || 1;
       }
 
-      updateHud();
+      updateHud(true);
     }
 
-   function changeSpeed(delta) {
-  if (!isScrolling) isScrolling = true;
+    function changeSpeed(delta) {
+      if (!isScrolling) isScrolling = true;
 
-  currentSpeed = Math.round((currentSpeed + delta) * 10) / 10;
+      currentSpeed = Math.round((currentSpeed + delta) * 10) / 10;
+      currentSpeed = Math.max(-30, Math.min(60, currentSpeed));
 
-  // Safety clamp avoids absurd speeds causing visible jumps.
-  currentSpeed = Math.max(-30, Math.min(60, currentSpeed));
+      updateHud(true);
+    }
 
-  updateHud(true);
-}
+    function resetPrompt() {
+      scrollPos = 0;
+      isScrolling = false;
+      currentSpeed = 0;
+      drawCanvasFrame();
+      updateHud(true);
+    }
 
-   function resetPrompt() {
-  scrollPos = 0;
-  appliedScrollTop = 0;
-  els.prompterFrame.scrollTop = 0;
-  isScrolling = false;
-  currentSpeed = 0;
-  updateHud(true);
-}
     function updateHud(force = false) {
-  if (!force && performance.now() - lastHudUpdate < 120) return;
+      if (!force && performance.now() - lastHudUpdate < 120) return;
 
-  els.speedHud.textContent = isScrolling
-    ? currentSpeed.toFixed(1)
-    : `PAUSED ${currentSpeed.toFixed(1)}`;
+      els.speedHud.textContent = isScrolling
+        ? currentSpeed.toFixed(1)
+        : `PAUSED ${currentSpeed.toFixed(1)}`;
 
-  els.speedHud.classList.toggle("text-amber-400", currentSpeed < 0);
-  els.speedHud.classList.toggle("text-blue-400", currentSpeed >= 0);
+      els.speedHud.classList.toggle("text-amber-400", currentSpeed < 0);
+      els.speedHud.classList.toggle("text-blue-400", currentSpeed >= 0);
 
-  lastHudUpdate = performance.now();
-}
+      lastHudUpdate = performance.now();
+    }
 
     function hexToRgb(hex) {
       const safe = validHex(hex, "#000000");
